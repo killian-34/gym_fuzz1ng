@@ -42,11 +42,15 @@ def main():
         [1, 256] + [0] * 62,
     ]
 
+    di_list = []
     for i in inputs:
         obs, reward, done, info = env.step(np.array(i))
         c.add(info['step_coverage'])
         # TODO: verify if the transition dict always comes back the same
-        # print(info.transitions)
+        # print(info['total_coverage'].transitions)
+        # import pdb; pdb.set_trace()
+        di_list.append(info['step_coverage'])
+
 
         print(("STEP: reward={} done={} " +
                "step={}/{}/{} total={}/{}/{} " +
@@ -66,6 +70,24 @@ def main():
         if done:
             env.reset()
             print("DONE!")
+
+    obs = [di_list[i].observation() for i in range(len(di_list))]
+    all_equal = True
+    for i in range(len(di_list)):
+        for j in range(i+1, len(di_list)):
+            all_equal &= np.array_equal(obs[i], obs[j])
+    print(all_equal)
+
+    print("unique values")
+    for i in range(len(di_list)):
+        print(set(obs[i].reshape(-1)))
+
+    print("unique positions")
+    for i in range(len(di_list)):
+        print(np.argwhere(obs[i].reshape(-1) > 0).reshape(-1))
+
+
+    # import pdb; pdb.set_trace()
 
 
 if __name__ == "__main__":
