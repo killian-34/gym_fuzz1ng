@@ -34,9 +34,19 @@ def main():
         [1, 1, 256] + [0] * 61,
     ]
 
+
+    inputs = [
+        [1, 256] + [0] * 62,
+        [1, 256] + [0] * 62,
+        [1, 256] + [0] * 62,
+        [1, 256] + [0] * 62,
+    ]
+
     for i in inputs:
         obs, reward, done, info = env.step(np.array(i))
         c.add(info['step_coverage'])
+        # TODO: verify if the transition dict always comes back the same
+        # print(info.transitions)
 
         print(("STEP: reward={} done={} " +
                "step={}/{}/{} total={}/{}/{} " +

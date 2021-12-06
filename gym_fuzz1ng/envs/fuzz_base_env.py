@@ -1,4 +1,5 @@
 import gym
+import numpy as np
 
 from gym import spaces
 
@@ -30,6 +31,8 @@ class FuzzBaseEnv(gym.Env):
         return coverage.Coverage().observation()
 
     def step_raw(self, action):
+
+        action = action.astype(np.int32)
         assert self.action_space.contains(action)
 
         input_data = b""

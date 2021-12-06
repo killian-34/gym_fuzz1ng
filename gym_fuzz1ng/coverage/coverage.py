@@ -29,6 +29,7 @@ class Coverage:
         else:
             x_count = xxhash.xxh64()
             x_skip = xxhash.xxh64()
+            print(coverage_data)
 
             for i in range(0, PATH_MAP_SIZE):
                 if (coverage_data[3*i+2] == 0):
