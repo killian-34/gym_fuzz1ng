@@ -12,32 +12,7 @@ def main():
     total_coverage = coverage.Coverage()
 
     inputs = [
-        [1, 256] + [0] * 62,
-        [256] + [0] * 63,
-        [1, 1, 256] + [0] * 61,
-        [1, 1, 256] + [0] * 61,
-
-        [1, 1, 256] + [0] * 61,
-        [12, 256] + [0] * 62,
-        [12, 7, 256] + [0] * 61,
-
-        [1, 256] + [0] * 62,
-        [1, 2, 256] + [0] * 61,
-        [1, 2, 3, 256] + [0] * 60,
-        [1, 2, 3, 4, 256] + [0] * 59,
-        [1, 2, 3, 4, 5, 256] + [0] * 58,
-        [1, 1, 256] + [0] * 61,
-
-        [1, 1, 256] + [0] * 61,
-        [0, 1, 2, 3, 4, 5, 6, 7, 8, 0, 256] + [0] * 53,
-        [0, 1, 2, 3, 4, 5, 6, 7, 8, 0, 1, 256] + [0] * 52,
-        [0, 1, 2, 3, 4, 5, 6, 7, 8, 0, 1, 0, 256] + [0] * 51,
-        [1, 1, 256] + [0] * 61,
-    ]
-
-
-    inputs = [
-        [0, 256] + [0] * 62,
+        np.array([0, 256] + [0] * 62, dtype=np.int8).tobytes()
     ]
 
     di_list = []
@@ -50,9 +25,11 @@ def main():
         print('Queue length:', len(input_queue))
         next_input = input_queue.popleft()
 
-        for edit_input in helper.deterministic_edits(next_input):
-            print(edit_input[:10])
-            obs, reward, done, info = env.step(np.array(next_input))
+        input_buff = bytearray(next_input)
+        out_buff = bytearray(next_input)
+        for edit_input in helper.deterministic_edits(input_buff, out_buff):
+            # print(edit_input[:2], int(edit_input[0]),int(edit_input[1]))
+            obs, reward, done, info = env.step(edit_input)
             # print('before',total_coverage.transitions)
             total_coverage.add(info['step_coverage'])
             # print('after',total_coverage.transitions)
@@ -64,7 +41,7 @@ def main():
                 print("adding input",edit_input)
 
 
-            print(info['step_coverage'].transitions, edit_input[:4])
+            # print(info['step_coverage'].transitions, edit_input[:4])
             # print(("STEP: reward={} done={} " +
             #     "step={}/{}/{}").format(
             #         reward, done,
