@@ -30,7 +30,7 @@ def main():
         input_buff = bytearray(next_input)
         out_buff = bytearray(next_input)
         for edit_input in helper.deterministic_edits(input_buff, out_buff):
-            # print(edit_input[:2], int(edit_input[0]),int(edit_input[1]))
+            # print(edit_input[:5])#, int(edit_input[0]),int(edit_input[1]))
             obs, reward, done, info = env.step(edit_input)
             # print('before',total_coverage.transitions)
             total_coverage.add(info['step_coverage'])

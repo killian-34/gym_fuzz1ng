@@ -2,6 +2,8 @@ import numpy as np
 from collections import deque
 from numba import jit
 
+ARITH_MAX = 32
+
 class Queue():
 
     def __init__(self, inputs):
@@ -95,15 +97,69 @@ def deterministic_edits(orig, out_buff):
         flip_byte_afl(out_buff, byte_i+3)
 
 
-    # # flip two bits
-    # # iterate over all bytes
-    # for byte_i in range(input_len):
+    # 1-byte arithmetic
+    for byte_i in range(input_len):
+        orig = np.array([out_buff[byte_i]], dtype=np.uint8) # need uint8 for correct overflow logic
+        for j in range(1, ARITH_MAX):
+            out_buff[byte_i] = (orig + j)[0]
+            yield out_buff
+            out_buff[byte_i] = (orig - j)[0]
+            yield out_buff
+        out_buff[byte_i] = orig[0]
 
-    #     # iterate over bits in the byte
-    #     for bit_i in range(7):
-    #         flip_bit(out_buff, 2, byte_i, bit_i)
-    #         yield out_buff
-    #         flip_bit(out_buff, 2, byte_i, bit_i)
+    
+    # 2-byte arithmetic
+    NBYTES=2
+    for byte_i in range(input_len-1):
+
+        orig = out_buff[byte_i:byte_i+NBYTES] # creates a copy
+
+        little = np.frombuffer(orig, dtype='<u%i'%NBYTES)
+        big = np.frombuffer(orig, dtype='>u%i'%NBYTES)
+
+        for j in range(1, ARITH_MAX):
+            # little endian
+            out_buff[byte_i:byte_i+NBYTES] = (little + j).tobytes()
+            yield out_buff
+            out_buff[byte_i:byte_i+NBYTES] = (little - j).tobytes()
+            yield out_buff
+
+            out_buff[byte_i:byte_i+NBYTES] = (big + j).byteswap(inplace=True).tobytes()
+            # out_buff[byte_i:byte_i+NBYTES] = (big + j)[0].to_bytes(NBYTES, byteorder='big')
+            yield out_buff
+            out_buff[byte_i:byte_i+NBYTES] = (big - j).byteswap(inplace=True).tobytes()
+            yield out_buff
+
+        out_buff[byte_i:byte_i+NBYTES] = orig
+
+
+
+    # 4-byte arithmetic
+    NBYTES=4
+    for byte_i in range(input_len-3):
+
+        orig = out_buff[byte_i:byte_i+NBYTES] # creates a copy
+
+        little = np.frombuffer(orig, dtype='<u%i'%NBYTES)
+        big = np.frombuffer(orig, dtype='>u%i'%NBYTES)
+
+        for j in range(1, ARITH_MAX):
+            # little endian
+            out_buff[byte_i:byte_i+NBYTES] = (little + j).tobytes()
+            yield out_buff
+            out_buff[byte_i:byte_i+NBYTES] = (little - j).tobytes()
+            yield out_buff
+
+            out_buff[byte_i:byte_i+NBYTES] = (big + j).byteswap(inplace=True).tobytes()
+            # out_buff[byte_i:byte_i+NBYTES] = (big + j)[0].to_bytes(NBYTES, byteorder='big')
+            yield out_buff
+            out_buff[byte_i:byte_i+NBYTES] = (big - j).byteswap(inplace=True).tobytes()
+            yield out_buff
+
+        out_buff[byte_i:byte_i+NBYTES] = orig
+    
+
+
 
 
     
