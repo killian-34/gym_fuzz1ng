@@ -27,6 +27,10 @@ class Queue():
 def flip_bit_afl(a, bit_i):
     a[bit_i >> 3] ^= (128 >> (bit_i & 7))
 
+@jit
+def flip_byte_afl(a, byte_i):
+    a[byte_i] ^= 0xFF
+
 # must take bytearray
 # @jit
 # jit not working with byte arrays for some reason
@@ -62,6 +66,33 @@ def deterministic_edits(orig, out_buff):
         flip_bit_afl(out_buff, bit_i+1)
         flip_bit_afl(out_buff, bit_i+2)
         flip_bit_afl(out_buff, bit_i+3)
+
+
+    # flip byte
+    for byte_i in range(input_len):
+        flip_byte_afl(out_buff, byte_i)
+        yield out_buff
+        flip_byte_afl(out_buff, byte_i)
+
+    # flip 2 bytes
+    for byte_i in range(input_len-1):
+        flip_byte_afl(out_buff, byte_i)
+        flip_byte_afl(out_buff, byte_i+1)
+        yield out_buff
+        flip_byte_afl(out_buff, byte_i)
+        flip_byte_afl(out_buff, byte_i+1)
+
+    # flip 4 bytes
+    for byte_i in range(input_len-3):
+        flip_byte_afl(out_buff, byte_i)
+        flip_byte_afl(out_buff, byte_i+1)
+        flip_byte_afl(out_buff, byte_i+2)
+        flip_byte_afl(out_buff, byte_i+3)
+        yield out_buff
+        flip_byte_afl(out_buff, byte_i)
+        flip_byte_afl(out_buff, byte_i+1)
+        flip_byte_afl(out_buff, byte_i+2)
+        flip_byte_afl(out_buff, byte_i+3)
 
 
     # # flip two bits

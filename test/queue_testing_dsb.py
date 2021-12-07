@@ -3,16 +3,18 @@ import gym_fuzz1ng.coverage as coverage
 import numpy as np
 from collections import deque
 import helper
+from gym_fuzz1ng.envs.fuzz_simple_bits_env import FuzzSimpleBitsEnvSmall
 
 def main():
-    env = gym.make('FuzzSimpleBits-v0')
+    # env = gym.make('FuzzSimpleBits-v0')
+    env = FuzzSimpleBitsEnvSmall()
     print("dict_size={} eof={}".format(env.dict_size(), env.eof()))
 
     env.reset()
     total_coverage = coverage.Coverage()
 
     inputs = [
-        np.array([0, 256] + [0] * 62, dtype=np.int8).tobytes()
+        np.array([0, 256] + [0] * 30, dtype=np.int8).tobytes()
     ]
 
     di_list = []

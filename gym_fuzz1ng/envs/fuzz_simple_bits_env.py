@@ -14,3 +14,15 @@ class FuzzSimpleBitsEnv(FuzzBaseEnvBytes):
             'bytes': True,
         })
         super(FuzzSimpleBitsEnv, self).__init__()
+
+
+class FuzzSimpleBitsEnvSmall(FuzzBaseEnvBytes):
+    def __init__(self):
+        self._input_size = 16
+        self._target_path = gym_fuzz1ng.simple_bits_target_path()
+        self._args = []
+        self._dict = coverage.Dictionary({
+            'tokens': [],
+            'bytes': True,
+        })
+        super(FuzzSimpleBitsEnvSmall, self).__init__()
