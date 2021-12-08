@@ -19,6 +19,9 @@ class Coverage:
         self.skip_pathes = {}
         self.verbose = verbose
 
+        # match the bucket logic of afl
+        self.bucket_dict = dict([(1,-1),(2,0),(3,1)] + [(i,int(np.floor(np.log2(i)))) for i in range(4, 255)])
+
         if coverage_status is None:
             return
         assert coverage_data is not None
@@ -29,7 +32,6 @@ class Coverage:
         else:
             x_count = xxhash.xxh64()
             x_skip = xxhash.xxh64()
-            print(coverage_data)
 
             for i in range(0, PATH_MAP_SIZE):
                 if (coverage_data[3*i+2] == 0):
@@ -56,9 +58,15 @@ class Coverage:
 
     def observation(self):
         v = np.zeros((EDGE_MAP_SIZE, EDGE_MAP_SIZE))
+        
         for i in self.transitions:
             v[i % EDGE_MAP_SIZE][int(i / EDGE_MAP_SIZE)] = self.transitions[i]
         return v
+
+    def moves_to_better_bucket(self, a, b):
+        before = int(a)
+        after = int(b)
+        return self.bucket_dict[after] > self.bucket_dict[before]
 
     def add(self, coverage):
         for transition in coverage.transitions:
@@ -74,6 +82,30 @@ class Coverage:
                 self.skip_pathes[path] = 0
             self.skip_pathes[path] += coverage.skip_pathes[path]
         self.crashes += coverage.crashes
+
+    def union(self, coverage):
+        new_transition = False
+        moved_bucket = False
+        for transition in coverage.transitions:
+            if transition not in self.transitions:
+                self.transitions[transition] = coverage.transitions[transition]
+                new_transition = True
+            else:
+                moved_bucket = self.moves_to_better_bucket(self.transitions[transition], coverage.transitions[transition])
+                if coverage.transitions[transition] > self.transitions[transition]:
+                    self.transitions[transition] = coverage.transitions[transition]
+
+        for path in coverage.count_pathes:
+            if path not in self.count_pathes:
+                self.count_pathes[path] = 0
+            self.count_pathes[path] += coverage.count_pathes[path]
+        for path in coverage.skip_pathes:
+            if path not in self.skip_pathes:
+                self.skip_pathes[path] = 0
+            self.skip_pathes[path] += coverage.skip_pathes[path]
+        self.crashes += coverage.crashes
+
+        return new_transition or moved_bucket
 
     def path_count(self):
         return len(self.count_pathes)
