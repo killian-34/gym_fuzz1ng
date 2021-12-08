@@ -45,7 +45,8 @@ class FuzzBaseEnv(gym.Env):
         c = self.engine.run(input_data)
 
         if c.crash_count() > 0:
-            print("CRASH {}".format(input_data))
+            # print("CRASH {}".format(input_data))
+            pass
 
         return {
             "step_coverage": c,
@@ -129,7 +130,8 @@ class FuzzBaseEnvBytes(gym.Env):
         c = self.engine.run(input_data)
 
         if c.crash_count() > 0:
-            print("CRASH {}".format(input_data))
+            # print("CRASH {}".format(input_data))
+            pass
 
         return {
             "step_coverage": c,
