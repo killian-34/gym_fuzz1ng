@@ -17,7 +17,7 @@ class Build(DistutilsBuild):
 
 setup(
     name='gym_fuzz1ng',
-    version='0.0.9',
+    version='0.1.0',
     platforms='Posix',
     install_requires=[
         'gym>=0.10.3',
@@ -38,6 +38,7 @@ setup(
         'gym_fuzz1ng.coverage',
         'gym_fuzz1ng.mods',
         'gym_fuzz1ng.envs',
+        'gym_fuzz1ng.utils'
     ],
     cmdclass={'build': Build},
     include_package_data=True

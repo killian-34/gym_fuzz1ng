@@ -94,8 +94,6 @@ def run_strace(path, input, timeout=60):
 
     strace_df['syscall_number'] = syscall_number
 
-    print(strace_df)
-
     return strace_df
 
 

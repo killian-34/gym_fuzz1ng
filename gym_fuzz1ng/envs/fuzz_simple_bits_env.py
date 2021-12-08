@@ -26,3 +26,6 @@ class FuzzSimpleBitsEnvSmall(FuzzBaseEnvBytes):
             'bytes': True,
         })
         super(FuzzSimpleBitsEnvSmall, self).__init__()
+    
+    def getpath(self):
+        return self._target_path
