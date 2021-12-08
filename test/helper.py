@@ -4,6 +4,7 @@ from numba import jit
 import time
 
 ARITH_MAX = 4
+DEV_MODE = True
 
 INTERESTING_8 = [
   -128,          #/* Overflow signed 8-bit when decremented  */ \
@@ -49,6 +50,217 @@ def flip_bit_afl(a, bit_i):
 def flip_byte_afl(a, byte_i):
     a[byte_i] ^= 0xFF
 
+
+def random_edits(current_input, a):
+
+    input_len = len(current_input)
+    out_buff = current_input
+
+    if a == 0:
+        # flip single bits
+        bit_i = np.random.randint(0, high = input_len << 3)
+        flip_bit_afl(out_buff, bit_i)
+        return out_buff
+    
+    if a == 1:
+        # flip two bits
+        bit_i = np.random.randint(0, high = (input_len << 3) - 1)
+        flip_bit_afl(out_buff, bit_i)
+        flip_bit_afl(out_buff, bit_i+1)
+        return out_buff
+
+    # snew = time.time()
+    # print("Finished 2-bit flips: %s"%(snew-sprev))
+    # sprev = snew
+
+    # # flip four bits
+    # for bit_i in range(input_len << 3 - 3):
+    #     flip_bit_afl(out_buff, bit_i)
+    #     flip_bit_afl(out_buff, bit_i+1)
+    #     flip_bit_afl(out_buff, bit_i+2)
+    #     flip_bit_afl(out_buff, bit_i+3)
+    #     yield out_buff
+    #     flip_bit_afl(out_buff, bit_i)
+    #     flip_bit_afl(out_buff, bit_i+1)
+    #     flip_bit_afl(out_buff, bit_i+2)
+    #     flip_bit_afl(out_buff, bit_i+3)
+
+    # snew = time.time()
+    # print("Finished 4-bit flips: %s"%(snew-sprev))
+    # sprev = snew
+
+
+    # # flip byte
+    # for byte_i in range(input_len):
+    #     flip_byte_afl(out_buff, byte_i)
+    #     yield out_buff
+    #     flip_byte_afl(out_buff, byte_i)
+
+    # snew = time.time()
+    # print("Finished 1-byte flips: %s"%(snew-sprev))
+    # sprev = snew
+
+    # # flip 2 bytes
+    # for byte_i in range(input_len-1):
+    #     flip_byte_afl(out_buff, byte_i)
+    #     flip_byte_afl(out_buff, byte_i+1)
+    #     yield out_buff
+    #     flip_byte_afl(out_buff, byte_i)
+    #     flip_byte_afl(out_buff, byte_i+1)
+
+    # snew = time.time()
+    # print("Finished 2-byte flips: %s"%(snew-sprev))
+    # sprev = snew
+
+    # # flip 4 bytes
+    # for byte_i in range(input_len-3):
+    #     flip_byte_afl(out_buff, byte_i)
+    #     flip_byte_afl(out_buff, byte_i+1)
+    #     flip_byte_afl(out_buff, byte_i+2)
+    #     flip_byte_afl(out_buff, byte_i+3)
+    #     yield out_buff
+    #     flip_byte_afl(out_buff, byte_i)
+    #     flip_byte_afl(out_buff, byte_i+1)
+    #     flip_byte_afl(out_buff, byte_i+2)
+    #     flip_byte_afl(out_buff, byte_i+3)
+
+    # snew = time.time()
+    # print("Finished 4-byte flips: %s"%(snew-sprev))
+    # sprev = snew
+
+    # # 1-byte arithmetic
+    # orig = np.copy(np.frombuffer(out_buff, dtype=np.uint8)) # need uint8 for correct overflow logic
+    # for byte_i in range(input_len):
+    #     for j in np.arange(1, ARITH_MAX, dtype=np.uint8):
+    #         # import pdb; pdb.set_trace()
+    #         out_buff[byte_i] = (orig[byte_i] + j) # need everything to be uint8 
+    #         yield out_buff
+    #         out_buff[byte_i] = (orig[byte_i] - j) # need uint8 for correct overflow logic
+    #         yield out_buff
+    #     out_buff[byte_i] = orig[byte_i]
+
+    # snew = time.time()
+    # print("Finished 1-byte arithmetic: %s"%(snew-sprev))
+    # sprev = snew
+
+    # # 2-byte arithmetic
+    # NBYTES=2
+    # for byte_i in range(input_len-1):
+
+    #     orig = out_buff[byte_i:byte_i+NBYTES] # creates a copy
+
+    #     little = np.frombuffer(orig, dtype='<u%i'%NBYTES)
+    #     big = np.frombuffer(orig, dtype='>u%i'%NBYTES)
+
+    #     for j in range(1, ARITH_MAX):
+    #         # little endian
+    #         out_buff[byte_i:byte_i+NBYTES] = (little + j).tobytes()
+    #         yield out_buff
+    #         out_buff[byte_i:byte_i+NBYTES] = (little - j).tobytes()
+    #         yield out_buff
+
+    #         out_buff[byte_i:byte_i+NBYTES] = (big + j).byteswap(inplace=True).tobytes()
+    #         # out_buff[byte_i:byte_i+NBYTES] = (big + j)[0].to_bytes(NBYTES, byteorder='big')
+    #         yield out_buff
+    #         out_buff[byte_i:byte_i+NBYTES] = (big - j).byteswap(inplace=True).tobytes()
+    #         yield out_buff
+
+    #     out_buff[byte_i:byte_i+NBYTES] = orig
+
+
+    # snew = time.time()
+    # print("Finished 2-byte arithmetic: %s"%(snew-sprev))
+    # sprev = snew
+
+    # # 4-byte arithmetic
+    # NBYTES=4
+    # for byte_i in range(input_len-3):
+
+    #     orig = out_buff[byte_i:byte_i+NBYTES] # creates a copy
+
+    #     little = np.frombuffer(orig, dtype='<u%i'%NBYTES)
+    #     big = np.frombuffer(orig, dtype='>u%i'%NBYTES)
+
+    #     for j in range(1, ARITH_MAX):
+    #         # little endian
+    #         out_buff[byte_i:byte_i+NBYTES] = (little + j).tobytes()
+    #         yield out_buff
+    #         out_buff[byte_i:byte_i+NBYTES] = (little - j).tobytes()
+    #         yield out_buff
+
+    #         out_buff[byte_i:byte_i+NBYTES] = (big + j).byteswap(inplace=True).tobytes()
+    #         # out_buff[byte_i:byte_i+NBYTES] = (big + j)[0].to_bytes(NBYTES, byteorder='big')
+    #         yield out_buff
+    #         out_buff[byte_i:byte_i+NBYTES] = (big - j).byteswap(inplace=True).tobytes()
+    #         yield out_buff
+
+    #     out_buff[byte_i:byte_i+NBYTES] = orig
+
+    # snew = time.time()
+    # print("Finished 4-byte arithmetic: %s"%(snew-sprev))
+    # sprev = snew
+
+    # # 1-byte interesting values
+    # interesting_8 = np.array(INTERESTING_8, dtype=np.int8)
+    # for byte_i in range(input_len):
+    #     orig = out_buff[byte_i] # creates a copy
+    #     for interesting in interesting_8:
+    #         # import pdb;pdb.set_trace()
+    #         out_buff[byte_i:byte_i+1] = interesting.tobytes()
+    #         yield out_buff
+    #     out_buff[byte_i] = orig
+
+
+    # snew = time.time()
+    # print("Finished 1-byte interesting values: %s"%(snew-sprev))
+    # sprev = snew
+
+    # # 2-byte interesting values
+    # NBYTES=2
+    # interesting_16 = np.array(INTERESTING_8+INTERESTING_16, dtype=np.int16)
+    # interesting_16_big = interesting_16.byteswap()
+    # for byte_i in range(input_len-1):
+
+    #     orig = out_buff[byte_i:byte_i+NBYTES] # creates a copy
+    #     for j in range(len(interesting_16)):
+    #         # import pdb;pdb.set_trace()
+    #         out_buff[byte_i:byte_i+NBYTES] = interesting_16[j].tobytes()
+    #         yield out_buff
+    #         out_buff[byte_i:byte_i+NBYTES] = interesting_16_big[j].tobytes()
+    #         yield out_buff
+
+    #     out_buff[byte_i:byte_i+NBYTES] = orig
+
+    # snew = time.time()
+    # print("Finished 2-byte interesting values: %s"%(snew-sprev))
+    # sprev = snew
+
+    # # 4-byte interesting values
+    # NBYTES=4
+    # interesting_32 = np.array(INTERESTING_8+INTERESTING_16+INTERESTING_32, dtype=np.int32)
+    # interesting_32_big = interesting_32.byteswap()
+    # for byte_i in range(input_len-3):
+
+    #     orig = out_buff[byte_i:byte_i+NBYTES] # creates a copy
+    #     for j in range(len(interesting_32)):
+    #         # import pdb;pdb.set_trace()
+    #         out_buff[byte_i:byte_i+NBYTES] = interesting_32[j].tobytes()
+    #         yield out_buff
+    #         out_buff[byte_i:byte_i+NBYTES] = interesting_32_big[j].tobytes()
+    #         yield out_buff
+
+    #     out_buff[byte_i:byte_i+NBYTES] = orig
+
+
+    # snew = time.time()
+    # print("Finished 4-byte interesting values: %s"%(snew-sprev))
+    # sprev = snew
+
+
+
+
+
+
 # must take bytearray
 # @jit
 # jit not working with byte arrays for some reason
@@ -61,6 +273,7 @@ def deterministic_edits(orig, out_buff):
     s_determ = time.time()
     sprev = s_determ
     print("Starting deterministic edits!")
+    
     # flip single bits
     for bit_i in range(input_len << 3):
         flip_bit_afl(out_buff, bit_i)
@@ -84,229 +297,188 @@ def deterministic_edits(orig, out_buff):
     print("Finished 2-bit flips: %s"%(snew-sprev))
     sprev = snew
 
-    # flip four bits
-    for bit_i in range(input_len << 3 - 3):
-        flip_bit_afl(out_buff, bit_i)
-        flip_bit_afl(out_buff, bit_i+1)
-        flip_bit_afl(out_buff, bit_i+2)
-        flip_bit_afl(out_buff, bit_i+3)
-        yield out_buff
-        flip_bit_afl(out_buff, bit_i)
-        flip_bit_afl(out_buff, bit_i+1)
-        flip_bit_afl(out_buff, bit_i+2)
-        flip_bit_afl(out_buff, bit_i+3)
+    if not DEV_MODE:
 
-    snew = time.time()
-    print("Finished 4-bit flips: %s"%(snew-sprev))
-    sprev = snew
-
-
-    # flip byte
-    for byte_i in range(input_len):
-        flip_byte_afl(out_buff, byte_i)
-        yield out_buff
-        flip_byte_afl(out_buff, byte_i)
-
-    snew = time.time()
-    print("Finished 1-byte flips: %s"%(snew-sprev))
-    sprev = snew
-
-    # flip 2 bytes
-    for byte_i in range(input_len-1):
-        flip_byte_afl(out_buff, byte_i)
-        flip_byte_afl(out_buff, byte_i+1)
-        yield out_buff
-        flip_byte_afl(out_buff, byte_i)
-        flip_byte_afl(out_buff, byte_i+1)
-
-    snew = time.time()
-    print("Finished 2-byte flips: %s"%(snew-sprev))
-    sprev = snew
-
-    # flip 4 bytes
-    for byte_i in range(input_len-3):
-        flip_byte_afl(out_buff, byte_i)
-        flip_byte_afl(out_buff, byte_i+1)
-        flip_byte_afl(out_buff, byte_i+2)
-        flip_byte_afl(out_buff, byte_i+3)
-        yield out_buff
-        flip_byte_afl(out_buff, byte_i)
-        flip_byte_afl(out_buff, byte_i+1)
-        flip_byte_afl(out_buff, byte_i+2)
-        flip_byte_afl(out_buff, byte_i+3)
-
-    snew = time.time()
-    print("Finished 4-byte flips: %s"%(snew-sprev))
-    sprev = snew
-
-    # 1-byte arithmetic
-    orig = np.copy(np.frombuffer(out_buff, dtype=np.uint8)) # need uint8 for correct overflow logic
-    for byte_i in range(input_len):
-        for j in np.arange(1, ARITH_MAX, dtype=np.uint8):
-            # import pdb; pdb.set_trace()
-            out_buff[byte_i] = (orig[byte_i] + j) # need everything to be uint8 
+        # flip four bits
+        for bit_i in range(input_len << 3 - 3):
+            flip_bit_afl(out_buff, bit_i)
+            flip_bit_afl(out_buff, bit_i+1)
+            flip_bit_afl(out_buff, bit_i+2)
+            flip_bit_afl(out_buff, bit_i+3)
             yield out_buff
-            out_buff[byte_i] = (orig[byte_i] - j) # need uint8 for correct overflow logic
+            flip_bit_afl(out_buff, bit_i)
+            flip_bit_afl(out_buff, bit_i+1)
+            flip_bit_afl(out_buff, bit_i+2)
+            flip_bit_afl(out_buff, bit_i+3)
+
+        snew = time.time()
+        print("Finished 4-bit flips: %s"%(snew-sprev))
+        sprev = snew
+
+
+        # flip byte
+        for byte_i in range(input_len):
+            flip_byte_afl(out_buff, byte_i)
             yield out_buff
-        out_buff[byte_i] = orig[byte_i]
+            flip_byte_afl(out_buff, byte_i)
 
-    snew = time.time()
-    print("Finished 1-byte arithmetic: %s"%(snew-sprev))
-    sprev = snew
+        snew = time.time()
+        print("Finished 1-byte flips: %s"%(snew-sprev))
+        sprev = snew
 
-    # 2-byte arithmetic
-    NBYTES=2
-    for byte_i in range(input_len-1):
-
-        orig = out_buff[byte_i:byte_i+NBYTES] # creates a copy
-
-        little = np.frombuffer(orig, dtype='<u%i'%NBYTES)
-        big = np.frombuffer(orig, dtype='>u%i'%NBYTES)
-
-        for j in range(1, ARITH_MAX):
-            # little endian
-            out_buff[byte_i:byte_i+NBYTES] = (little + j).tobytes()
+        # flip 2 bytes
+        for byte_i in range(input_len-1):
+            flip_byte_afl(out_buff, byte_i)
+            flip_byte_afl(out_buff, byte_i+1)
             yield out_buff
-            out_buff[byte_i:byte_i+NBYTES] = (little - j).tobytes()
+            flip_byte_afl(out_buff, byte_i)
+            flip_byte_afl(out_buff, byte_i+1)
+
+        snew = time.time()
+        print("Finished 2-byte flips: %s"%(snew-sprev))
+        sprev = snew
+
+        # flip 4 bytes
+        for byte_i in range(input_len-3):
+            flip_byte_afl(out_buff, byte_i)
+            flip_byte_afl(out_buff, byte_i+1)
+            flip_byte_afl(out_buff, byte_i+2)
+            flip_byte_afl(out_buff, byte_i+3)
             yield out_buff
+            flip_byte_afl(out_buff, byte_i)
+            flip_byte_afl(out_buff, byte_i+1)
+            flip_byte_afl(out_buff, byte_i+2)
+            flip_byte_afl(out_buff, byte_i+3)
 
-            out_buff[byte_i:byte_i+NBYTES] = (big + j).byteswap(inplace=True).tobytes()
-            # out_buff[byte_i:byte_i+NBYTES] = (big + j)[0].to_bytes(NBYTES, byteorder='big')
-            yield out_buff
-            out_buff[byte_i:byte_i+NBYTES] = (big - j).byteswap(inplace=True).tobytes()
-            yield out_buff
+        snew = time.time()
+        print("Finished 4-byte flips: %s"%(snew-sprev))
+        sprev = snew
 
-        out_buff[byte_i:byte_i+NBYTES] = orig
+        # 1-byte arithmetic
+        orig = np.copy(np.frombuffer(out_buff, dtype=np.uint8)) # need uint8 for correct overflow logic
+        for byte_i in range(input_len):
+            for j in np.arange(1, ARITH_MAX, dtype=np.uint8):
+                # import pdb; pdb.set_trace()
+                out_buff[byte_i] = (orig[byte_i] + j) # need everything to be uint8 
+                yield out_buff
+                out_buff[byte_i] = (orig[byte_i] - j) # need uint8 for correct overflow logic
+                yield out_buff
+            out_buff[byte_i] = orig[byte_i]
 
+        snew = time.time()
+        print("Finished 1-byte arithmetic: %s"%(snew-sprev))
+        sprev = snew
 
-    snew = time.time()
-    print("Finished 2-byte arithmetic: %s"%(snew-sprev))
-    sprev = snew
+        # 2-byte arithmetic
+        NBYTES=2
+        for byte_i in range(input_len-1):
 
-    # 4-byte arithmetic
-    NBYTES=4
-    for byte_i in range(input_len-3):
+            orig = out_buff[byte_i:byte_i+NBYTES] # creates a copy
 
-        orig = out_buff[byte_i:byte_i+NBYTES] # creates a copy
+            little = np.frombuffer(orig, dtype='<u%i'%NBYTES)
+            big = np.frombuffer(orig, dtype='>u%i'%NBYTES)
 
-        little = np.frombuffer(orig, dtype='<u%i'%NBYTES)
-        big = np.frombuffer(orig, dtype='>u%i'%NBYTES)
+            for j in range(1, ARITH_MAX):
+                # little endian
+                out_buff[byte_i:byte_i+NBYTES] = (little + j).tobytes()
+                yield out_buff
+                out_buff[byte_i:byte_i+NBYTES] = (little - j).tobytes()
+                yield out_buff
 
-        for j in range(1, ARITH_MAX):
-            # little endian
-            out_buff[byte_i:byte_i+NBYTES] = (little + j).tobytes()
-            yield out_buff
-            out_buff[byte_i:byte_i+NBYTES] = (little - j).tobytes()
-            yield out_buff
+                out_buff[byte_i:byte_i+NBYTES] = (big + j).byteswap(inplace=True).tobytes()
+                # out_buff[byte_i:byte_i+NBYTES] = (big + j)[0].to_bytes(NBYTES, byteorder='big')
+                yield out_buff
+                out_buff[byte_i:byte_i+NBYTES] = (big - j).byteswap(inplace=True).tobytes()
+                yield out_buff
 
-            out_buff[byte_i:byte_i+NBYTES] = (big + j).byteswap(inplace=True).tobytes()
-            # out_buff[byte_i:byte_i+NBYTES] = (big + j)[0].to_bytes(NBYTES, byteorder='big')
-            yield out_buff
-            out_buff[byte_i:byte_i+NBYTES] = (big - j).byteswap(inplace=True).tobytes()
-            yield out_buff
-
-        out_buff[byte_i:byte_i+NBYTES] = orig
-
-    snew = time.time()
-    print("Finished 4-byte arithmetic: %s"%(snew-sprev))
-    sprev = snew
-
-    # 1-byte interesting values
-    interesting_8 = np.array(INTERESTING_8, dtype=np.int8)
-    for byte_i in range(input_len):
-        orig = out_buff[byte_i] # creates a copy
-        for interesting in interesting_8:
-            # import pdb;pdb.set_trace()
-            out_buff[byte_i:byte_i+1] = interesting.tobytes()
-            yield out_buff
-        out_buff[byte_i] = orig
+            out_buff[byte_i:byte_i+NBYTES] = orig
 
 
-    snew = time.time()
-    print("Finished 1-byte interesting values: %s"%(snew-sprev))
-    sprev = snew
+        snew = time.time()
+        print("Finished 2-byte arithmetic: %s"%(snew-sprev))
+        sprev = snew
 
-    # 2-byte interesting values
-    NBYTES=2
-    interesting_16 = np.array(INTERESTING_8+INTERESTING_16, dtype=np.int16)
-    interesting_16_big = interesting_16.byteswap()
-    for byte_i in range(input_len-1):
+        # 4-byte arithmetic
+        NBYTES=4
+        for byte_i in range(input_len-3):
 
-        orig = out_buff[byte_i:byte_i+NBYTES] # creates a copy
-        for j in range(len(interesting_16)):
-            # import pdb;pdb.set_trace()
-            out_buff[byte_i:byte_i+NBYTES] = interesting_16[j].tobytes()
-            yield out_buff
-            out_buff[byte_i:byte_i+NBYTES] = interesting_16_big[j].tobytes()
-            yield out_buff
+            orig = out_buff[byte_i:byte_i+NBYTES] # creates a copy
 
-        out_buff[byte_i:byte_i+NBYTES] = orig
+            little = np.frombuffer(orig, dtype='<u%i'%NBYTES)
+            big = np.frombuffer(orig, dtype='>u%i'%NBYTES)
 
-    snew = time.time()
-    print("Finished 2-byte interesting values: %s"%(snew-sprev))
-    sprev = snew
+            for j in range(1, ARITH_MAX):
+                # little endian
+                out_buff[byte_i:byte_i+NBYTES] = (little + j).tobytes()
+                yield out_buff
+                out_buff[byte_i:byte_i+NBYTES] = (little - j).tobytes()
+                yield out_buff
 
-    # 4-byte interesting values
-    NBYTES=4
-    interesting_32 = np.array(INTERESTING_8+INTERESTING_16+INTERESTING_32, dtype=np.int32)
-    interesting_32_big = interesting_32.byteswap()
-    for byte_i in range(input_len-3):
+                out_buff[byte_i:byte_i+NBYTES] = (big + j).byteswap(inplace=True).tobytes()
+                # out_buff[byte_i:byte_i+NBYTES] = (big + j)[0].to_bytes(NBYTES, byteorder='big')
+                yield out_buff
+                out_buff[byte_i:byte_i+NBYTES] = (big - j).byteswap(inplace=True).tobytes()
+                yield out_buff
 
-        orig = out_buff[byte_i:byte_i+NBYTES] # creates a copy
-        for j in range(len(interesting_32)):
-            # import pdb;pdb.set_trace()
-            out_buff[byte_i:byte_i+NBYTES] = interesting_32[j].tobytes()
-            yield out_buff
-            out_buff[byte_i:byte_i+NBYTES] = interesting_32_big[j].tobytes()
-            yield out_buff
+            out_buff[byte_i:byte_i+NBYTES] = orig
 
-        out_buff[byte_i:byte_i+NBYTES] = orig
+        snew = time.time()
+        print("Finished 4-byte arithmetic: %s"%(snew-sprev))
+        sprev = snew
 
-
-    snew = time.time()
-    print("Finished 4-byte interesting values: %s"%(snew-sprev))
-    sprev = snew
+        # 1-byte interesting values
+        interesting_8 = np.array(INTERESTING_8, dtype=np.int8)
+        for byte_i in range(input_len):
+            orig = out_buff[byte_i] # creates a copy
+            for interesting in interesting_8:
+                # import pdb;pdb.set_trace()
+                out_buff[byte_i:byte_i+1] = interesting.tobytes()
+                yield out_buff
+            out_buff[byte_i] = orig
 
 
-# must take bytearray
-# @jit
-# jit not working with byte arrays for some reason
-def deterministic_edits_old(orig, out_buff):
-    
-    yield out_buff
+        snew = time.time()
+        print("Finished 1-byte interesting values: %s"%(snew-sprev))
+        sprev = snew
 
-    input_len = len(input)
+        # 2-byte interesting values
+        NBYTES=2
+        interesting_16 = np.array(INTERESTING_8+INTERESTING_16, dtype=np.int16)
+        interesting_16_big = interesting_16.byteswap()
+        for byte_i in range(input_len-1):
 
-    # flip single bits
+            orig = out_buff[byte_i:byte_i+NBYTES] # creates a copy
+            for j in range(len(interesting_16)):
+                # import pdb;pdb.set_trace()
+                out_buff[byte_i:byte_i+NBYTES] = interesting_16[j].tobytes()
+                yield out_buff
+                out_buff[byte_i:byte_i+NBYTES] = interesting_16_big[j].tobytes()
+                yield out_buff
 
-    # iterate over all bytes
-    for byte_i in range(input_len):
+            out_buff[byte_i:byte_i+NBYTES] = orig
 
-        # iterate over bits in the byte
-        for bit_i in range(8):
-            flip_bit(out_buff, 1, byte_i, bit_i)
-            yield out_buff
-            flip_bit(out_buff, 1, byte_i, bit_i)
+        snew = time.time()
+        print("Finished 2-byte interesting values: %s"%(snew-sprev))
+        sprev = snew
+
+        # 4-byte interesting values
+        NBYTES=4
+        interesting_32 = np.array(INTERESTING_8+INTERESTING_16+INTERESTING_32, dtype=np.int32)
+        interesting_32_big = interesting_32.byteswap()
+        for byte_i in range(input_len-3):
+
+            orig = out_buff[byte_i:byte_i+NBYTES] # creates a copy
+            for j in range(len(interesting_32)):
+                # import pdb;pdb.set_trace()
+                out_buff[byte_i:byte_i+NBYTES] = interesting_32[j].tobytes()
+                yield out_buff
+                out_buff[byte_i:byte_i+NBYTES] = interesting_32_big[j].tobytes()
+                yield out_buff
+
+            out_buff[byte_i:byte_i+NBYTES] = orig
 
 
-    # flip two bits
-    # iterate over all bytes
-    for byte_i in range(input_len):
+        snew = time.time()
+        print("Finished 4-byte interesting values: %s"%(snew-sprev))
+        sprev = snew
 
-        # iterate over bits in the byte
-        for bit_i in range(7):
-            flip_bit(out_buff, 2, byte_i, bit_i)
-            yield out_buff
-            flip_bit(out_buff, 2, byte_i, bit_i)
-
-
-    
-    # flip four bits
-    # iterate over all bytes
-    for byte_i in range(input_len):
-
-        # iterate over bits in the byte
-        for bit_i in range(5):
-            flip_bit(out_buff, 4, byte_i, bit_i)
-            yield out_buff
-            flip_bit(out_buff, 4, byte_i, bit_i)
