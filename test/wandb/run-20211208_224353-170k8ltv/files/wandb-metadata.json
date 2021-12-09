@@ -1,0 +1,22 @@
+{
+    "os": "Linux-5.11.0-41-generic-x86_64-with-glibc2.29",
+    "python": "3.8.10",
+    "heartbeatAt": "2021-12-09T03:44:09.941621",
+    "startedAt": "2021-12-09T03:43:53.442043",
+    "docker": null,
+    "cpu_count": 1,
+    "cuda": null,
+    "args": [],
+    "state": "running",
+    "program": "rl_dev_dummy_simple_bits.py",
+    "codePath": "test/rl_dev_dummy_simple_bits.py",
+    "git": {
+        "remote": "https://github.com/killian-34/gym_fuzz1ng.git",
+        "commit": "bdf78445cb740e8efa6633fd83c4aa1bf702ef4f"
+    },
+    "email": "jkillian@g.harvard.edu",
+    "root": "/home/jackson/repos/gym_fuzz1ng_cs263",
+    "host": "jackson-VirtualBox",
+    "username": "jackson",
+    "executable": "/usr/bin/python3"
+}
