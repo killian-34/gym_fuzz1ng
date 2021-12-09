@@ -5,6 +5,8 @@ from collections import deque
 import helper
 from gym_fuzz1ng.envs.fuzz_simple_bits_env import FuzzSimpleBitsEnvSmall
 import time
+from gym_fuzz1ng.utils import run_strace
+from fs.tempfs import TempFS
 
 # RL imports
 import my_ppo
@@ -16,12 +18,57 @@ from spinup.utils.logx import EpochLogger
 from spinup.utils.mpi_pytorch import setup_pytorch_for_mpi, sync_params, mpi_avg_grads
 from spinup.utils.mpi_tools import mpi_fork, mpi_avg, proc_id, mpi_statistics_scalar, num_procs
 
+import xxhash
+h = xxhash.xxh32()
 
 N_EDIT_TYPES = 2
 DUMMY = 10
 
 def get_observation(a):
+    # return get_observation_random(a)
+    return get_observation_determ(a)
+
+def get_observation_random(a):
     return np.random.rand(DUMMY)
+
+def get_observation_determ(a):
+    return np.arange(DUMMY)
+
+
+
+sno=0
+tmp = TempFS(identifier='_fuzz', temp_dir='/tmp/') 
+tempdir = str(tmp._temp_dir) + "/"
+program_name = "SimpleBits-v0-"
+def get_observation_strace(path_to_binary, a):
+    global sno
+
+    # update the file counter
+    sno += 1
+
+    # saves the file to a temporary path
+    savepath = tempdir + program_name + \
+        str(sno) + "_" + str(time.time())
+
+    s = time.time()
+    with open(savepath, "wb") as binary_file:
+        # Write bytes to file
+        binary_file.write(a)
+    s1 = time.time()
+    print('write time',s1-s)
+
+    # store strace output and then get the state from it
+    s = time.time()
+    strace_out = run_strace.run_strace(path_to_binary, savepath)
+    s1 = time.time()
+    state = run_strace.strace_state(strace_out)
+    s2 = time.time()
+    print("next times...")
+    print(s1-s)
+    print(s2-s1)
+
+    return state
+
 
 
 # arguments copied from spinup PPO
@@ -148,7 +195,7 @@ def main(actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
 
 
     ####################
-    # maing fuzzing loop
+    # main fuzzing loop
     ####################
 
     # env = gym.make('FuzzSimpleBits-v0')
@@ -168,7 +215,11 @@ def main(actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
 
     global_coverage = coverage.Coverage()
 
+    path_to_binary = env.getpath()
+
     epoch = 0
+
+    state_count_dict = {}
 
     while len(input_queue) > 0:
         print('Queue length:', len(input_queue))
@@ -176,15 +227,22 @@ def main(actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
 
         input_buff = bytearray(next_input)
         out_buff = bytearray(next_input)
+        s = time.time()
         for edit_input in helper.deterministic_edits(input_buff, out_buff):
-
-            # TODO: asynchronously pass edit_input to the strace call to get back a state
-            # to use in RL
+            # newt = time.time()
+            # print("loop time:",newt-s)
+            # s=newt
+            s = time.time()
+            # obs = get_observation(path_to_binary, edit_input)
+            obs = get_observation(edit_input)
+            s1 = time.time()
+            print("time",s1-s)
+            # print('state',obs)
 
             # TODO: find a way to increase the transition map size from 256 to other--
             # probably just increase MAPSIZE (sp?) param
 
-            # print(edit_input[:5])#, int(edit_input[0]),int(edit_input[1]))
+            print(edit_input[:5])#, int(edit_input[0]),int(edit_input[1]))
             obs, reward, done, info = env.step(edit_input)
             # print('before',total_coverage.transitions)
             total_coverage.add(info['step_coverage'])
@@ -247,13 +305,37 @@ def main(actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
         # for epoch in range(epochs):
         for t in range(local_steps_per_epoch):
 
-            print("Getting RL action for round %s:"%t)
+            # print("Getting RL action for round %s:"%t)
             a, v, logp = ac.step(torch.as_tensor(obs, dtype=torch.float32))
 
             # ignore the action for now and just pass a dummy edit
             edit_input = helper.random_edits(current_input, a)
 
-            _, reward, done, info = env.step(edit_input)
+            
+            _, env_reward, done, info = env.step(edit_input)
+
+            # dont use env_reward, since its just a sum of the transitions
+            # what we actually want is a count-based state exploration reward
+            
+            # get state hash
+            h.update(obs)
+            hsh = h.digest()
+            h.reset()
+
+            if hsh in state_count_dict:
+                state_count_dict[hsh] += 1
+            else:
+                state_count_dict[hsh] = 1
+
+            reward = 1/np.sqrt(state_count_dict[hsh])
+            print("obs")
+            print(obs)
+            print('hash', hsh)
+            print('count',state_count_dict[hsh])
+            print('reward',reward)
+
+            # print(reward)
+            # import pdb; pdb.set_trace()
 
             next_obs = get_observation(edit_input)
             current_input = edit_input
@@ -272,7 +354,6 @@ def main(actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
             terminal = done or timeout
             epoch_ended = t==local_steps_per_epoch-1
 
-            print('epoch ended')
             # if terminal or epoch_ended:
             if epoch_ended:
                 if epoch_ended and not(terminal):
@@ -323,6 +404,10 @@ def main(actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
         # compare against it. Shouldn't be too hard. Important thing will be to make sure 
         # that we execute approximately the same number of total edits as the AFL random
         # during comparisons.
+
+        # Note that we won't create a perfect copy of AFL random, becuase they do some 
+        # heuristic fine-tuning of how long to run the random havoc stage based
+        # on the performance of the test input in question
         
 
         # DONE: Build another loop to train on the RL data that was collected. We will 
