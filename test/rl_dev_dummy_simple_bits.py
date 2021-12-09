@@ -23,10 +23,12 @@ h = xxhash.xxh32()
 
 N_EDIT_TYPES = 2
 DUMMY = 10
+NSTATES = 335
 
-def get_observation(a):
+def get_observation(b,a):
+    return get_observation_strace(b,a)
     # return get_observation_random(a)
-    return get_observation_determ(a)
+    # return get_observation_determ(a)
 
 def get_observation_random(a):
     return np.random.rand(DUMMY)
@@ -50,22 +52,22 @@ def get_observation_strace(path_to_binary, a):
     savepath = tempdir + program_name + \
         str(sno) + "_" + str(time.time())
 
-    s = time.time()
+    # s = time.time()
     with open(savepath, "wb") as binary_file:
         # Write bytes to file
         binary_file.write(a)
-    s1 = time.time()
-    print('write time',s1-s)
+    # s1 = time.time()
+    # print('write time',s1-s)
 
     # store strace output and then get the state from it
-    s = time.time()
+    # s = time.time()
     strace_out = run_strace.run_strace(path_to_binary, savepath)
-    s1 = time.time()
+    # s1 = time.time()
     state = run_strace.strace_state(strace_out)
-    s2 = time.time()
-    print("next times...")
-    print(s1-s)
-    print(s2-s1)
+    # s2 = time.time()
+    # print("next times...")
+    # print(s1-s)
+    # print(s2-s1)
 
     return state
 
@@ -96,7 +98,8 @@ def main(actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
     # env = env_fn()
 
 
-    observation_space = np.arange(DUMMY)
+    # observation_space = np.arange(DUMMY)
+    observation_space = np.arange(NSTATES)
     action_space = gym.spaces.Discrete(N_EDIT_TYPES)
 
     obs_dim = observation_space.shape
@@ -229,14 +232,14 @@ def main(actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
         out_buff = bytearray(next_input)
         s = time.time()
         for edit_input in helper.deterministic_edits(input_buff, out_buff):
-            # newt = time.time()
-            # print("loop time:",newt-s)
-            # s=newt
-            s = time.time()
+            newt = time.time()
+            print("loop time:",newt-s)
+            s=newt
+            # s = time.time()
             # obs = get_observation(path_to_binary, edit_input)
-            obs = get_observation(edit_input)
-            s1 = time.time()
-            print("time",s1-s)
+            # obs = get_observation(edit_input)
+            # s1 = time.time()
+            # print("time",s1-s)
             # print('state',obs)
 
             # TODO: find a way to increase the transition map size from 256 to other--
@@ -300,7 +303,9 @@ def main(actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
 
         # TODO: implement get_observation()
         # state space should eventually be both file and and program state
-        obs, ep_ret, ep_len = get_observation(current_input), 0, 0
+        # obs, ep_ret, ep_len = get_observation(current_input), 0, 0
+        obs = get_observation(path_to_binary, edit_input)
+        ep_ret, ep_len = 0, 0
         # Main loop: collect experience in env and update/log each epoch
         # for epoch in range(epochs):
         for t in range(local_steps_per_epoch):
@@ -314,14 +319,16 @@ def main(actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
             
             _, env_reward, done, info = env.step(edit_input)
 
+            # next_obs = get_observation(edit_input)
+            next_obs = get_observation(path_to_binary, edit_input)
+            current_input = edit_input
+
             # dont use env_reward, since its just a sum of the transitions
             # what we actually want is a count-based state exploration reward
-            
             # get state hash
             h.update(obs)
             hsh = h.digest()
             h.reset()
-
             if hsh in state_count_dict:
                 state_count_dict[hsh] += 1
             else:
@@ -333,12 +340,6 @@ def main(actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
             print('hash', hsh)
             print('count',state_count_dict[hsh])
             print('reward',reward)
-
-            # print(reward)
-            # import pdb; pdb.set_trace()
-
-            next_obs = get_observation(edit_input)
-            current_input = edit_input
 
             ep_ret += reward
             ep_len += 1
