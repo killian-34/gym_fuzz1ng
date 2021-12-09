@@ -50,6 +50,10 @@ def flip_bit_afl(a, bit_i):
 def flip_byte_afl(a, byte_i):
     a[byte_i] ^= 0xFF
 
+def deterministic_bit_edit(in_buff, bit_i):
+    flip_bit_afl(in_buff, bit_i)
+    return in_buff
+
 
 def random_edits(current_input, a):
 
@@ -269,6 +273,8 @@ def deterministic_edits(orig, out_buff):
     yield out_buff
 
     input_len = len(orig)
+    if DEV_MODE:
+        input_len = 5
 
     s_determ = time.time()
     sprev = s_determ
@@ -285,19 +291,20 @@ def deterministic_edits(orig, out_buff):
     sprev = snew
     
 
-    # flip two bits
-    for bit_i in range(input_len << 3 - 1):
-        flip_bit_afl(out_buff, bit_i)
-        flip_bit_afl(out_buff, bit_i+1)
-        yield out_buff
-        flip_bit_afl(out_buff, bit_i)
-        flip_bit_afl(out_buff, bit_i+1)
-
-    snew = time.time()
-    print("Finished 2-bit flips: %s"%(snew-sprev))
-    sprev = snew
-
     if not DEV_MODE:
+        # flip two bits
+        for bit_i in range(input_len << 3 - 1):
+            flip_bit_afl(out_buff, bit_i)
+            flip_bit_afl(out_buff, bit_i+1)
+            yield out_buff
+            flip_bit_afl(out_buff, bit_i)
+            flip_bit_afl(out_buff, bit_i+1)
+
+        snew = time.time()
+        print("Finished 2-bit flips: %s"%(snew-sprev))
+        sprev = snew
+
+        
 
         # flip four bits
         for bit_i in range(input_len << 3 - 3):

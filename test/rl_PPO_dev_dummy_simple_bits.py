@@ -19,6 +19,10 @@ from spinup.utils.mpi_pytorch import setup_pytorch_for_mpi, sync_params, mpi_avg
 from spinup.utils.mpi_tools import mpi_fork, mpi_avg, proc_id, mpi_statistics_scalar, num_procs
 
 import xxhash
+import wandb
+
+wandb.init(project="CS263", entity="cs263")
+
 h = xxhash.xxh32()
 
 N_EDIT_TYPES = 2
@@ -185,6 +189,13 @@ def main(actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
                      KL=kl, Entropy=ent, ClipFrac=cf,
                      DeltaLossPi=(loss_pi.item() - pi_l_old),
                      DeltaLossV=(loss_v.item() - v_l_old))
+
+        # wandb.log('LossPi':pi_l_old, 'LossV':v_l_old,
+        #              'KL':kl, 'Entropy':ent, 'ClipFrac':cf,
+        #              'DeltaLossPi':(loss_pi.item() - pi_l_old),
+        #              'DeltaLossV':(loss_v.item() - v_l_old))
+
+        # wandb.log({"loss": loss})
 
     
     
@@ -369,6 +380,7 @@ def main(actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
                 if terminal:
                     # only save EpRet / EpLen if trajectory finished
                     logger.store(EpRet=ep_ret, EpLen=ep_len)
+                    wandb.log({"EpRet":ep_ret, "EpLen":ep_len})
 
                 # don't need this unless we want to train on a given files for mulitple epochs
                 # o, ep_ret, ep_len = env.reset(), 0, 0
@@ -397,6 +409,8 @@ def main(actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
         logger.log_tabular('ClipFrac', average_only=True)
         logger.log_tabular('StopIter', average_only=True)
         logger.log_tabular('Time', time.time()-start_time)
+
+
         logger.dump_tabular()
 
         epoch += 1
