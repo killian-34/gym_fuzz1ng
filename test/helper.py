@@ -499,8 +499,8 @@ def deterministic_edits_2(orig, out_buff):
     # yield out_buff, 0
 
     input_len = len(orig)
-    if DEV_MODE:
-        input_len = 5
+    # if DEV_MODE:
+    #     input_len = 5
 
     s_determ = time.time()
     sprev = s_determ

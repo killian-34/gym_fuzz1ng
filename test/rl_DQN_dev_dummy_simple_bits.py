@@ -73,7 +73,12 @@ def get_observation_strace(path_to_binary, a):
     # s = time.time()
     strace_out = run_strace.run_strace(path_to_binary, savepath)
     # s1 = time.time()
+    
     state = run_strace.strace_state(strace_out)
+
+    # just keep read and write!
+    state = state[:2]
+
     # s2 = time.time()
     # print("next times...")
     # print(s1-s)
@@ -83,7 +88,7 @@ def get_observation_strace(path_to_binary, a):
 
 
 
-# arguments copied from spinup PPO
+# arguments copied from spinup my_dqn
 def main(n_episodes=2000, max_t=100, eps_start=1.0, eps_end=0.01, eps_decay=0.995):
 
 
@@ -95,6 +100,12 @@ def main(n_episodes=2000, max_t=100, eps_start=1.0, eps_end=0.01, eps_decay=0.99
     UPDATE_EVERY = 4        # how often to update the network
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     
+
+    # NSTATES = len(run_strace.syscall_map)
+    NSTATES = 2
+
+    # for the simple 2ladder env, just need three bytes
+    NACTIONS = 3*8
     
     
     # Prepare for interaction with environment
@@ -114,14 +125,14 @@ def main(n_episodes=2000, max_t=100, eps_start=1.0, eps_end=0.01, eps_decay=0.99
     print("dict_size={} eof={}".format(env.dict_size(), env.eof()))
     env.reset()
 
-    agent = Agent(state_size=len(run_strace.syscall_map), action_size=32*8, device=device, lr=LR, 
+    agent = Agent(state_size=NSTATES, action_size=NACTIONS, device=device, lr=LR, 
             buffer_size=BUFFER_SIZE, batch_size=BATCH_SIZE, update_every=UPDATE_EVERY,
              gamma=GAMMA, tau=TAU, seed=0)
 
     total_coverage = coverage.Coverage()
 
     inputs = [
-        np.array([0, 256] + [0] * 30, dtype=np.int8).tobytes()
+        np.array([0, 0, 0], dtype=np.int8).tobytes()
     ]
 
     di_list = []
