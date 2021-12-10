@@ -12,7 +12,7 @@ Ntrials = int(sys.argv[2])
 
 dfs = []
 for i in range(Ntrials):
-    df = pd.read_csv('train_times_%i_%s.csv'%(i,INPUT_SIZE))
+    df = pd.read_csv('csv/train_times_%i_%s.csv'%(i,INPUT_SIZE))
 
 
     dfs.append(df)
@@ -24,7 +24,7 @@ print(train_df)
 
 dfs = []
 for i in range(Ntrials):
-    df = pd.read_csv('test_times_%i_%s.csv'%(i,INPUT_SIZE))
+    df = pd.read_csv('csv/test_times_%i_%s.csv'%(i,INPUT_SIZE))
 
     dfs.append(df)
 
@@ -81,7 +81,7 @@ ZERO_REPLACE_VAL = 500
 
 dfs = []
 for i in range(Ntrials):
-    df = pd.read_csv('train_edits_until_x_%i_%s.csv'%(i,INPUT_SIZE))
+    df = pd.read_csv('csv/train_edits_until_x_%i_%s.csv'%(i,INPUT_SIZE))
 
     dfs.append(df)
 
@@ -92,7 +92,7 @@ print(train_df)
 
 dfs = []
 for i in range(Ntrials):
-    df = pd.read_csv('test_edits_until_x_%i_%s.csv'%(i,INPUT_SIZE))
+    df = pd.read_csv('csv/test_edits_until_x_%i_%s.csv'%(i,INPUT_SIZE))
 
     dfs.append(df)
 
@@ -105,7 +105,7 @@ print(test_df)
 
 dfs = []
 for i in range(Ntrials):
-    df = pd.read_csv('random_edits_until_x_%i_%s.csv'%(i,INPUT_SIZE))
+    df = pd.read_csv('csv/random_edits_until_x_%i_%s.csv'%(i,INPUT_SIZE))
 
     dfs.append(df)
 
@@ -118,7 +118,7 @@ print(random_df)
 
 dfs = []
 for i in range(2):
-    df = pd.read_csv('determ_edits_until_x_%i_%s.csv'%(i,INPUT_SIZE))
+    df = pd.read_csv('csv/determ_edits_until_x_%i_%s.csv'%(i,INPUT_SIZE))
 
     dfs.append(df)
 
@@ -186,7 +186,7 @@ plt.clf()
 
 dfs = []
 for i in range(Ntrials):
-    df = pd.read_csv('train_transitions_per_edit_%i_%s.csv'%(i,INPUT_SIZE))
+    df = pd.read_csv('csv/train_transitions_per_edit_%i_%s.csv'%(i,INPUT_SIZE))
 
     dfs.append(df)
 
@@ -197,7 +197,7 @@ print(train_df)
 
 dfs = []
 for i in range(Ntrials):
-    df = pd.read_csv('test_transitions_per_edit_%i_%s.csv'%(i,INPUT_SIZE))
+    df = pd.read_csv('csv/test_transitions_per_edit_%i_%s.csv'%(i,INPUT_SIZE))
 
     dfs.append(df)
 
@@ -208,7 +208,7 @@ print(test_df)
 
 dfs = []
 for i in range(Ntrials):
-    df = pd.read_csv('random_transitions_per_edit_%i_%s.csv'%(i,INPUT_SIZE))
+    df = pd.read_csv('csv/random_transitions_per_edit_%i_%s.csv'%(i,INPUT_SIZE))
 
     dfs.append(df)
 
@@ -217,7 +217,7 @@ random_df = pd.concat(dfs,axis=0)
 
 dfs = []
 for i in range(2):
-    df = pd.read_csv('determ_transitions_per_edit_%i_%s.csv'%(i,INPUT_SIZE))
+    df = pd.read_csv('csv/determ_transitions_per_edit_%i_%s.csv'%(i,INPUT_SIZE))
 
     dfs.append(df)
 

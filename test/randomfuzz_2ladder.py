@@ -1,31 +1,18 @@
+import sys
+import time
+from collections import deque
+
 import gym
 import gym_fuzz1ng.coverage as coverage
-import helper
-import numpy as np
-import time
-import sys
-from collections import deque
-from gym_fuzz1ng.envs.fuzz_simple_bits_env import FuzzSimpleBitsEnvSmall
-from gym_fuzz1ng.utils import run_strace
-from fs.tempfs import TempFS
-
 # RL imports
-import my_ppo
-import spinup.algos.pytorch.ppo.core as core
+import numpy as np
 import torch
-from torch.optim import Adam
-import spinup.algos.pytorch.ppo.core as core
-from spinup.utils.logx import EpochLogger
-from spinup.utils.mpi_pytorch import setup_pytorch_for_mpi, sync_params, mpi_avg_grads
-from spinup.utils.mpi_tools import mpi_fork, mpi_avg, proc_id, mpi_statistics_scalar, num_procs
-
 import xxhash
+from fs.tempfs import TempFS
+from gym_fuzz1ng.utils import run_strace
 
-from my_dqn import Agent
-
-
-# import wandb
-# wandb.init(project="CS263", entity="cs263")
+import helper
+from dqn import Agent
 
 h = xxhash.xxh32()
 
@@ -62,27 +49,17 @@ def get_observation_strace(path_to_binary, a):
     savepath = tempdir + program_name + \
         str(sno) + "_" + str(time.time())
 
-    # s = time.time()
     with open(savepath, "wb") as binary_file:
         # Write bytes to file
         binary_file.write(a)
-    # s1 = time.time()
-    # print('write time',s1-s)
 
     # store strace output and then get the state from it
-    # s = time.time()
     strace_out = run_strace.run_strace(path_to_binary, savepath)
-    # s1 = time.time()
     
     state = run_strace.strace_state(strace_out)
 
     # just keep read and write!
     state = state[:2]
-
-    # s2 = time.time()
-    # print("next times...")
-    # print(s1-s)
-    # print(s2-s1)
 
     return state
 
@@ -133,10 +110,6 @@ def main(n_episodes=2000, max_t=10, eps_start=1.0, eps_end=0.01, eps_decay=0.995
             buffer_size=BUFFER_SIZE, batch_size=BATCH_SIZE, update_every=UPDATE_EVERY,
              gamma=GAMMA, tau=TAU, seed=seed)
 
-    fname='2ladder_agent_trained_%s_%s.pickle'%(trial,INPUT_SIZE)
-    agent.load_self(fname)
-
-
     total_coverage = coverage.Coverage()
 
     inputs = [
@@ -171,26 +144,95 @@ def main(n_episodes=2000, max_t=10, eps_start=1.0, eps_end=0.01, eps_decay=0.995
     time_to_eight = 0
 
 
-    starttime = time.time()
-    # while len(input_queue) > 0:
-    EPOCHS_PER_INPUT = int(sys.argv[3])
+    GOOD_EXPERIENCE_LOOP_COUNTER = 10
+    EPOCHS_PER_INPUT =  int(sys.argv[3])
+
     total_edits = 0
 
     edits_until_x = np.zeros(5)
     unique_transitions_found = []
+
+    starttime = time.time()
+    # while len(input_queue) > 0:
     for epoch_i in range(EPOCHS_PER_INPUT):
-        # print('Queue length:', len(input_queue))
+        print('Queue length:', len(input_queue))
         # next_input = input_queue.popleft()
 
-        # input_buff = bytearray(next_input)
-        # out_buff = bytearray(next_input)
         # s = time.time()
 
-        eps=0.1
+        PRETRAIN_WITH_DETERM = False
 
 
-        # EPOCHS_PER_INPUT = 10
+        if PRETRAIN_WITH_DETERM:
+            input_buff = bytearray(next_input)
+            out_buff = bytearray(next_input)
+            state = get_observation(path_to_binary, input_buff)
+            for edit_input, action in helper.deterministic_edits_2(input_buff, out_buff):
+
+                next_state = get_observation(path_to_binary, edit_input)
+                
+                print(edit_input[:5])#, int(edit_input[0]),int(edit_input[1]))
+                _, env_reward, done, info = env.step(edit_input)
+                reward = 0
+
+                # don't actually want this for deterministic edits... these are all one step transitions
+                # state = next_state
+
+                total_coverage.add(info['step_coverage'])
+                
+                # oldTODO: double check this is the way global coverage is tracked in AFL
+                edit_was_useful = global_coverage.union(info['step_coverage'])
+                
+                if edit_was_useful:
+                    
+                    # always give reward 1 for useful edits during deterministic phase
+                    reward = 1
+
+                    count_edits_were_useful+=1
+                    input_queue.append(edit_input)
+                    print("adding input",edit_input)
+
+
+                    print(info['step_coverage'].transitions, edit_input[:4])
+                    print(("STEP: reward={} done={} " +
+                        "step={}/{}/{}").format(
+                            reward, done,
+                            info['step_coverage'].skip_path_count(),
+                            info['step_coverage'].transition_count(),
+                            info['step_coverage'].crash_count(),
+                        ))
+                if done:
+                    env.reset()
+                    # print("DONE!")
+
+
+                # get experiences for deterministic edits as well
+                done=False
+                agent.memory.add(state, action, reward, next_state, done)
+
+                if edit_was_useful:
+                    agent.memory.get_good_experience(shorter_len=1)
+                    print()
+                    print('good experiences on action',action)
+                    print(agent.memory.good_experiences)
+                    # 1/0
+
+
+                global_transition_count = global_coverage.transition_count()
+                # print(global_transition_count)
+
+                # wandb.log({})
+                # wandb.log({'global_coverage':global_transition_count, 'useful_edits':count_edits_were_useful})
+        
+        
+        for i in range(GOOD_EXPERIENCE_LOOP_COUNTER):
+            agent.learn_good_experiences()
+
+        eps = 1.0
         for next_input in list(input_queue):
+            print('LOOP1')
+            # fname='2ladder_agent_trained.pickle'
+            # agent.save_self(fname)
             print('epoch',epoch_i)
             env.reset()
             current_input = bytearray(next_input)
@@ -199,6 +241,7 @@ def main(n_episodes=2000, max_t=10, eps_start=1.0, eps_end=0.01, eps_decay=0.995
             state = get_observation(path_to_binary, current_input)
             score = 0
             for t in range(max_t):
+                # print('LOOP')
                 edit_action = agent.act(state, eps)
                 edit_input = helper.network_edit(current_input, edit_action)
                 total_edits+=1
@@ -264,8 +307,6 @@ def main(n_episodes=2000, max_t=10, eps_start=1.0, eps_end=0.01, eps_decay=0.995
                 if done:
                     env.reset()
 
-                # wandb.log({'useful_edits':count_edits_were_useful})
-
                 # get the syscall counts that we use for states
                 next_state = get_observation(path_to_binary, edit_input)
                 
@@ -285,44 +326,25 @@ def main(n_episodes=2000, max_t=10, eps_start=1.0, eps_end=0.01, eps_decay=0.995
 
                 reward = 1/np.sqrt(state_count_dict[hsh])
 
-                if edit_was_useful:
-                    print("obs")
-                    print(next_state)
-                    print('hash', hsh)
-                    print('count',state_count_dict[hsh])
-                    print('reward',reward)
-                    print('action',edit_action)
-                    print('eps',eps)
-                    print('current_input',current_input)
-                    print('current_input',np.frombuffer(current_input,dtype=np.uint8))
-                    print('global map',global_coverage.transitions)
-                # eps = max(eps_end, eps_decay*eps) # decrease epsilon
-
                 unique_transitions_found.append(count_edits_were_useful)
 
-                # wandb.log({'score':score, 'global_coverage':global_coverage.transition_count()})
                 done = False
-                # agent.step(state, edit_action, reward, next_state, done)
+                agent.step(state, edit_action, reward, next_state, done)
                 state = next_state
                 score += reward
 
-                if edit_was_useful:
-                    agent.memory.get_good_experience()
+                
 
-            print("obs")
-            print(next_state)
-            print('hash', hsh)
-            print('count',state_count_dict[hsh])
-            print('reward',reward)
-            print('action',edit_action)
-            print('eps',eps)
-            print('current_input',current_input)
-            print('current_input',np.frombuffer(current_input,dtype=np.uint8))
-            print('global map',global_coverage.transitions)
-            
+                if edit_was_useful:
+                    agent.memory.get_good_experience(shorter_len=1)
+
+                       
 
             # for i in range(GOOD_EXPERIENCE_LOOP_COUNTER):
             #     agent.learn_good_experiences()
+            # for exp in agent.memory.good_experiences:
+            #     print(exp)
+
 
             
 
@@ -336,10 +358,9 @@ def main(n_episodes=2000, max_t=10, eps_start=1.0, eps_end=0.01, eps_decay=0.995
             print('\rEpisode {}\tAverage Score: {:.2f}\tSteps: {}'.format(epoch_i, np.mean(scores_window),t))
 
 
-
+    
         epoch+=1
 
-    # import pdb;pdb.set_trace()
     print('time to four',time_to_four)
     print('time to five',time_to_five)
     print('time to six',time_to_six)
@@ -348,7 +369,6 @@ def main(n_episodes=2000, max_t=10, eps_start=1.0, eps_end=0.01, eps_decay=0.995
 
 
     times = [[time_to_four, time_to_five, time_to_six, time_to_seven, time_to_eight]]
-
     edits_until_x = [edits_until_x]
 
     print(len(unique_transitions_found))
@@ -356,12 +376,14 @@ def main(n_episodes=2000, max_t=10, eps_start=1.0, eps_end=0.01, eps_decay=0.995
 
     
     import pandas as pd 
-    pd.DataFrame(times,columns=['tt4','tt5','tt6','tt7','tt8s']).to_csv('test_times_%s_%s.csv'%(trial, INPUT_SIZE),index=False)
+    pd.DataFrame(times,columns=['tt4','tt5','tt6','tt7','tt8s']).to_csv('csv/random_times_%s_%s.csv'%(trial,INPUT_SIZE),index=False)
 
-    pd.DataFrame(edits_until_x,columns=['et4','et5','et6','et7','et8s']).to_csv('test_edits_until_x_%s_%s.csv'%(trial, INPUT_SIZE),index=False)
+    pd.DataFrame(edits_until_x,columns=['et4','et5','et6','et7','et8s']).to_csv('csv/random_edits_until_x_%s_%s.csv'%(trial,INPUT_SIZE),index=False)
 
-    pd.DataFrame([unique_transitions_found]).to_csv('test_transitions_per_edit_%s_%s.csv'%(trial, INPUT_SIZE),index=False)
+    pd.DataFrame([unique_transitions_found]).to_csv('csv/random_transitions_per_edit_%s_%s.csv'%(trial,INPUT_SIZE),index=False)
 
+    print("Total edits!")
+    print(total_edits)
 
 
         # if i_episode % 100 == 0:
@@ -372,55 +394,6 @@ def main(n_episodes=2000, max_t=10, eps_start=1.0, eps_end=0.01, eps_decay=0.995
         #     break
 
         # return scores
-        # TODO: implement RL part here. Once deterministic edits are done for a file
-        # we want the RL agent to take random edit actions on the file, testing their goodness
-        # based on the transition map that gets returned.
-        #
-        # The hope is that, for a given program, over time we can learn to do better than random,
-        # which is all that AFL does at this stage.
-        #
-        # Should look something like `for i in range(EPOCH_LENGTH): ... do RL exploration`
-
-
-
-        # TODO: also implement the AFL version of the random edits sequence, so we can roughly
-        # compare against it. Shouldn't be too hard. Important thing will be to make sure 
-        # that we execute approximately the same number of total edits as the AFL random
-        # during comparisons.
-
-        # Note that we won't create a perfect copy of AFL random, becuase they do some 
-        # heuristic fine-tuning of how long to run the random havoc stage based
-        # on the performance of the test input in question
-        
-
-        # DONE: Build another loop to train on the RL data that was collected. We will 
-        # need to build some infrastructure for tracking actions/states/rewards
-        # but that should be boilerplate stuff that we can copy from RMABPPO or other
-        # openAI gym public repos.
-
-
-        # Other TODO s:
-        # - Experiment with different state spaces
-        # - Experiment with a few network architectures/training methods
-        # - Experiment with different action spaces
-        # - Experiment with choices for reward -- how to get non-zero rewards more often
-        #     - for now, I think we can just make the action space [flip 1 bit, flip 2 bits, flip 4 bits, ...]
-        #       then it randomly carries out that action somewhere in the file. Just keep it simple.
-        #       and as analogous to the AFL random edits as we can.
-        # - Experiment with a real program like libpng or something
-        # - Experiment with training on libpng v1 and test on libpng v2 or something along those lines
-        #     - doing well here would be a win
-        # - All the above probably gets us the grade we need already, but feel free to add other things to test.
-        # 
-
-
-
-        
-
-
-        
-
-    # import pdb; pdb.set_trace()
 
 
 if __name__ == "__main__":

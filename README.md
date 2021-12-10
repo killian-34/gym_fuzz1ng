@@ -1,4 +1,4 @@
-# gym-fuzz1ng
+# RL-based fuzz1ng
 
 OpenAI Gym[0] environment for binary fuzzing of a variety of libraries (libpng
 for now), executables, as well as simpler examples.
@@ -61,35 +61,12 @@ echo core >/proc/sys/kernel/core_pattern
 python dummy_simple_bits.py
 ```
 
-## Available environments
+## Experiments
 
-### `FuzzLibPNGEnv`
+In order to replicate the experiments run in the paper, just run the following:
+`./run_experiments.sh input_size n_trials`
+where `input_size` is the size of the input, and `n_trials` is the number of trials to average runs over.
 
-Fuzzing environment for libpng-1.6.34 (recent).
-
-- **action_space**: `Box(low=0, high=283, shape=(1024,))` dictionary composed
-  of magic tokens, all 255 bytes and EOF. Maximum input size is 1024.
-
-### `FuzzSimpleBits-v0`
-
-Fuzzing environment for the `simple_bits` executable (see
-[code](https://github.com/spolu/gym_fuzz1ng/blob/master/gym_fuzz1ng/mods/simple_bits-mod/simple_bits_afl.c)).
-
-- **action_space**: `Box(low=0, high=256, shape=(64,))` dictionary composed
-  all 256 bytes and EOF. Maximum input size is 64.
-
-### `FuzzSimpleLoop-v0`
-
-Fuzzing environment for the `simple_loop` executable (see
-[code](https://github.com/spolu/gym_fuzz1ng/blob/master/gym_fuzz1ng/mods/simple_loop-mod/simple_loop_afl.c)).
-
-- **action_space**: `Box(low=0, high=256, shape=(8,))` dictionary composed
-  all 256 bytes and EOF. Maximum input size is 8.
-
-### `FuzzChecksum_{2,4,8}_{2,4,8}-v0`
-
-Fuzzing environment for the `checksum_k_n` executable (see
-[code](https://github.com/spolu/gym_fuzz1ng/blob/master/gym_fuzz1ng/mods/checksum_k_n-mod/checksum_k_n_afl.c)).
-
-- **action_space**: `Box(low=0, high=256, shape=(8,))` dictionary composed
-  all 256 bytes and EOF. Maximum input size is 72.
+The plots are generated and stored in the `img` directory, while associated run data across
+trials is logged in csvs stored in `csv` directory. The trained models are stored in the 
+`model` directory

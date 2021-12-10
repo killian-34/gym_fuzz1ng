@@ -44,7 +44,7 @@ def main():
 
     di_list = []
     for i in inputs:
-        obs, reward, done, info = env.step(np.array(i))
+        obs, reward, done, info = env.step(np.array(i).tobytes())
         c.add(info['step_coverage'])
         # TODO: verify if the transition dict always comes back the same
         # print(info['total_coverage'].transitions)
