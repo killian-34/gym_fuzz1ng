@@ -4,7 +4,7 @@ import gym_fuzz1ng.coverage as coverage
 from gym_fuzz1ng.envs.fuzz_base_env import FuzzBaseEnv, FuzzBaseEnvBytes
 
 
-class FuzzSimpleBitsEnv(FuzzBaseEnvBytes):
+class FuzzSimpleBitsEnv(FuzzBaseEnv):
     def __init__(self):
         self._input_size = 64
         self._target_path = gym_fuzz1ng.simple_bits_target_path()
