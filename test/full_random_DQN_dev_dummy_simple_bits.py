@@ -106,7 +106,7 @@ def main(n_episodes=2000, max_t=10, eps_start=1.0, eps_end=0.01, eps_decay=0.995
     NSTATES = 2
 
     # for the simple 2ladder env, just need three bytes
-    INPUT_SIZE = 11
+    INPUT_SIZE = int(sys.argv[2])
     # NACTIONS = INPUT_SIZE*8
     NACTIONS = INPUT_SIZE
     
@@ -169,7 +169,7 @@ def main(n_episodes=2000, max_t=10, eps_start=1.0, eps_end=0.01, eps_decay=0.995
 
 
     GOOD_EXPERIENCE_LOOP_COUNTER = 10
-    EPOCHS_PER_INPUT = 2
+    EPOCHS_PER_INPUT =  int(sys.argv[3])
 
     total_edits = 0
 
@@ -436,8 +436,8 @@ def main(n_episodes=2000, max_t=10, eps_start=1.0, eps_end=0.01, eps_decay=0.995
     # with open('2ladder_agent_trained.pickle', 'wb') as handle:
     #     pickle.dump(agent, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
-    fname='2ladder_agent_trained_%s.pickle'%trial
-    agent.save_self(fname)
+    # fname='2ladder_agent_trained_%s.pickle'%trial
+    # agent.save_self(fname)
     print('time to four',time_to_four)
     print('time to five',time_to_five)
     print('time to six',time_to_six)
@@ -453,11 +453,11 @@ def main(n_episodes=2000, max_t=10, eps_start=1.0, eps_end=0.01, eps_decay=0.995
 
     
     import pandas as pd 
-    pd.DataFrame(times,columns=['tt4','tt5','tt6','tt7','tt8s']).to_csv('random_times_%s.csv'%trial,index=False)
+    pd.DataFrame(times,columns=['tt4','tt5','tt6','tt7','tt8s']).to_csv('random_times_%s_%s.csv'%(trial,INPUT_SIZE),index=False)
 
-    pd.DataFrame(edits_until_x,columns=['et4','et5','et6','et7','et8s']).to_csv('random_edits_until_x_%s.csv'%trial,index=False)
+    pd.DataFrame(edits_until_x,columns=['et4','et5','et6','et7','et8s']).to_csv('random_edits_until_x_%s_%s.csv'%(trial,INPUT_SIZE),index=False)
 
-    pd.DataFrame([unique_transitions_found]).to_csv('random_transitions_per_edit_%s.csv'%trial,index=False)
+    pd.DataFrame([unique_transitions_found]).to_csv('random_transitions_per_edit_%s_%s.csv'%(trial,INPUT_SIZE),index=False)
 
     print("Total edits!")
     print(total_edits)
