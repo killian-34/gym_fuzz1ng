@@ -4,18 +4,19 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 import base64, io
 
 import numpy as np
 from collections import deque, namedtuple
 
 # For visualization
-from gym.wrappers.monitoring import video_recorder
-from IPython.display import HTML
-from IPython import display 
-import glob
+# from gym.wrappers.monitoring import video_recorder
+# from IPython.display import HTML
+# from IPython import display 
+# import glob
 
+import itertools
 
 # env = gym.make('LunarLander-v2')
 # env.seed(0)
@@ -101,8 +102,14 @@ class Agent():
         if self.t_step == 0:
             # If enough samples are available in memory, get random subset and learn
             if len(self.memory) > self.batch_size:
-                experiences = self.memory.sample()
-                self.learn(experiences, self.gamma)
+                # experiences = self.memory.sample()
+                # self.learn(experiences, self.gamma)
+                self.learn_good_experiences()
+
+    def learn_good_experiences(self):
+        ind = np.random.randint(0, len(self.memory.good_experiences))
+        exps = self.memory.good_experiences[ind]
+        self.learn(exps, self.gamma)
 
     def act(self, state, eps=0.):
         """Returns actions for given state as per current policy.
@@ -185,6 +192,8 @@ class ReplayBuffer:
         self.experience = namedtuple("Experience", field_names=["state", "action", "reward", "next_state", "done"])
         self.seed = random.seed(seed)
 
+        self.good_experiences = []
+
         self.device = device
     
     def add(self, state, action, reward, next_state, done):
@@ -204,9 +213,28 @@ class ReplayBuffer:
   
         return (states, actions, rewards, next_states, dones)
 
+    def get_good_experience(self, short=False):
+        dq_len = len(self.memory)
+        if dq_len > 1:
+            
+            lb = max(0,dq_len-self.batch_size)
+            if short:
+                lb = max(0, dq_len-2)
+            print(dq_len, lb)
+            good_experiences = list(itertools.islice(self.memory,lb,dq_len))
+
+            states = torch.from_numpy(np.vstack([e.state for e in good_experiences if e is not None])).float().to(self.device)
+            actions = torch.from_numpy(np.vstack([e.action for e in good_experiences if e is not None])).long().to(self.device)
+            rewards = torch.from_numpy(np.vstack([e.reward for e in good_experiences if e is not None])).float().to(self.device)
+            next_states = torch.from_numpy(np.vstack([e.next_state for e in good_experiences if e is not None])).float().to(self.device)
+            dones = torch.from_numpy(np.vstack([e.done for e in good_experiences if e is not None]).astype(np.uint8)).float().to(self.device)
+
+            self.good_experiences.append((states, actions, rewards, next_states, dones))
+
     def __len__(self):
         """Return the current size of internal memory."""
         return len(self.memory)
+
 
 
 def dqn(n_episodes=2000, max_t=1000, eps_start=1.0, eps_end=0.01, eps_decay=0.995):

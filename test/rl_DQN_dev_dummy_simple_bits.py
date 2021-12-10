@@ -23,8 +23,8 @@ import xxhash
 from my_dqn import Agent
 
 
-import wandb
-wandb.init(project="CS263", entity="cs263")
+# import wandb
+# wandb.init(project="CS263", entity="cs263")
 
 h = xxhash.xxh32()
 
@@ -81,7 +81,7 @@ def get_observation_strace(path_to_binary, a):
 
 
 # arguments copied from spinup PPO
-def main(n_episodes=2000, max_t=1000, eps_start=1.0, eps_end=0.01, eps_decay=0.995):
+def main(n_episodes=2000, max_t=100, eps_start=1.0, eps_end=0.01, eps_decay=0.995):
 
 
     BUFFER_SIZE = int(1e5)  # replay buffer size
@@ -146,7 +146,9 @@ def main(n_episodes=2000, max_t=1000, eps_start=1.0, eps_end=0.01, eps_decay=0.9
         input_buff = bytearray(next_input)
         out_buff = bytearray(next_input)
         s = time.time()
-        for edit_input in helper.deterministic_edits(input_buff, out_buff):
+
+        state = get_observation(path_to_binary, input_buff)
+        for edit_input, action in helper.deterministic_edits_2(input_buff, out_buff):
             # newt = time.time()
             # print("loop time:",newt-s)
             # s=newt
@@ -157,20 +159,32 @@ def main(n_episodes=2000, max_t=1000, eps_start=1.0, eps_end=0.01, eps_decay=0.9
             # print("time",s1-s)
             # print('state',obs)
 
-            # TODO: find a way to increase the transition map size from 256 to other--
+            # oldTODO: find a way to increase the transition map size from 256 to other--
             # probably just increase MAPSIZE (sp?) param
 
-            # print(edit_input[:5])#, int(edit_input[0]),int(edit_input[1]))
-            obs, reward, done, info = env.step(edit_input)
+
+            next_state = get_observation(path_to_binary, edit_input)
+            
+            print(edit_input[:5])#, int(edit_input[0]),int(edit_input[1]))
+            _, env_reward, done, info = env.step(edit_input)
+            reward = 0
+
+            # don't actually want this for deterministic edits... these are all one step transitions
+            # state = next_state
+
             # print('before',total_coverage.transitions)
             total_coverage.add(info['step_coverage'])
             # print('after',total_coverage.transitions)
             # print()
             
-            # TODO: double check this is the way global coverage is tracked in AFL
+            # oldTODO: double check this is the way global coverage is tracked in AFL
             edit_was_useful = global_coverage.union(info['step_coverage'])
             
             if edit_was_useful:
+                
+                # always give reward 1 for useful edits during deterministic phase
+                reward = 1
+
                 count_edits_were_useful+=1
                 input_queue.append(edit_input)
                 print("adding input",edit_input)
@@ -189,91 +203,116 @@ def main(n_episodes=2000, max_t=1000, eps_start=1.0, eps_end=0.01, eps_decay=0.9
                 # print("DONE!")
 
 
+            # get experiences for deterministic edits as well
+            done=False
+            agent.memory.add(state, action, reward, next_state, done)
+
+            if edit_was_useful:
+                agent.memory.get_good_experience(short=True)
+                print()
+                print('good experiences on action',action)
+                print(agent.memory.good_experiences)
+                # 1/0
+
+
             global_transition_count = global_coverage.transition_count()
             # print(global_transition_count)
 
             # wandb.log({})
-            wandb.log({'global_coverage':global_transition_count, 'useful_edits':count_edits_were_useful})
+            # wandb.log({'global_coverage':global_transition_count, 'useful_edits':count_edits_were_useful})
         
-        
-        # for i_episode in range(1, n_episodes+1):
-        # state = env.reset()
+        GOOD_EXPERIENCE_LOOP_COUNTER = 5
+        EPOCHS_PER_INPUT = 5
+        for i in range(GOOD_EXPERIENCE_LOOP_COUNTER):
+            agent.learn_good_experiences()
 
-        # current_input = bytearray(next_input)
-        # output_buff = bytearray(next_input)
+        for i in range(EPOCHS_PER_INPUT):
+            print('epoch',i)
+            env.reset()
+            current_input = bytearray(next_input)
+            # output_buff = bytearray(next_input)
 
-        # state = get_observation(path_to_binary, current_input)
-        # score = 0
-        
-        # for t in range(max_t):
-        #     edit_action = agent.act(state, eps)
-        #     edit_input = helper.deterministic_bit_edit(current_input, edit_action)
+            state = get_observation(path_to_binary, current_input)
+            score = 0
+            for t in range(max_t):
+                edit_action = agent.act(state, eps)
+                edit_input = helper.deterministic_bit_edit(current_input, edit_action)
 
-        #     # run the file through afl, get the transition diagram from info
-        #     _, env_reward, done, info = env.step(edit_input)
+                # run the file through afl, get the transition diagram from info
+                _, env_reward, done, info = env.step(edit_input)
 
-        #     edit_was_useful = global_coverage.union(info['step_coverage'])
+                edit_was_useful = global_coverage.union(info['step_coverage'])
+                
+                if edit_was_useful:
+                    count_edits_were_useful+=1
+
+                    input_queue.append(edit_input)
+                    print("adding input",edit_input)
+
+
+                    print(info['step_coverage'].transitions, edit_input[:4])
+                    print(("STEP: reward={} done={} " +
+                        "step={}/{}/{}").format(
+                            reward, done,
+                            info['step_coverage'].skip_path_count(),
+                            info['step_coverage'].transition_count(),
+                            info['step_coverage'].crash_count(),
+                        ))
+                if done:
+                    env.reset()
+
+                # wandb.log({'useful_edits':count_edits_were_useful})
+
+                # get the syscall counts that we use for states
+                next_state = get_observation(path_to_binary, edit_input)
+                
+                #copy the new edited file to the current input
+                current_input = edit_input
+                
+                # dont use env_reward, since its just a sum of the transitions
+                # what we actually want is a count-based state exploration reward
+                # use the next_state for reward, could use state or even info['step_coverage'].observation
+                h.update(info['step_coverage'].observation())
+                hsh = h.digest()
+                h.reset()
+                if hsh in state_count_dict:
+                    state_count_dict[hsh] += 1
+                else:
+                    state_count_dict[hsh] = 1
+
+                reward = 1/np.sqrt(state_count_dict[hsh])
+
+                # print("obs")
+                # print(next_state)
+                # print('hash', hsh)
+                # print('count',state_count_dict[hsh])
+                # print('reward',reward)
+                # print('action',edit_action)
+                # print('eps',eps)
+                # print('current_input',current_input)
+                # print('global map',global_coverage.transitions)
+                eps = max(eps_end, eps_decay*eps) # decrease epsilon
+
+                # wandb.log({'score':score, 'global_coverage':global_coverage.transition_count()})
+                done = False
+                agent.step(state, edit_action, reward, next_state, done)
+                state = next_state
+                score += reward
+
+                if edit_was_useful:
+                    agent.memory.get_good_experience()
             
-        #     if edit_was_useful:
-        #         count_edits_were_useful+=1
 
-        #         input_queue.append(edit_input)
-        #         print("adding input",edit_input)
+            for i in range(GOOD_EXPERIENCE_LOOP_COUNTER):
+                agent.learn_good_experiences()
 
-
-        #         print(info['step_coverage'].transitions, edit_input[:4])
-        #         print(("STEP: reward={} done={} " +
-        #             "step={}/{}/{}").format(
-        #                 reward, done,
-        #                 info['step_coverage'].skip_path_count(),
-        #                 info['step_coverage'].transition_count(),
-        #                 info['step_coverage'].crash_count(),
-        #             ))
-        #     if done:
-        #         env.reset()
-
-        #     wandb.log({'useful_edits':count_edits_were_useful})
-
-        #     # get the syscall counts that we use for states
-        #     next_state = get_observation(path_to_binary, edit_input)
-            
-        #     #copy the new edited file to the current input
-        #     current_input = edit_input
-            
-        #     # dont use env_reward, since its just a sum of the transitions
-        #     # what we actually want is a count-based state exploration reward
-        #     # use the next_state for reward, could use state or even info['step_coverage'].transitions
-        #     h.update(next_state)
-        #     hsh = h.digest()
-        #     h.reset()
-        #     if hsh in state_count_dict:
-        #         state_count_dict[hsh] += 1
-        #     else:
-        #         state_count_dict[hsh] = 1
-
-        #     reward = 1/np.sqrt(state_count_dict[hsh])
-
-        #     print("obs")
-        #     print(next_state)
-        #     print('hash', hsh)
-        #     print('count',state_count_dict[hsh])
-        #     print('reward',reward)
-        #     print('action',edit_action)
-        #     print('eps',eps)
-        #     print('current_input',current_input)
-        #     print('global map',global_coverage.transitions)
-
-        #     wandb.log({'score':score, 'global_coverage':global_coverage.transition_count()})
-
-        #     agent.step(state, edit_action, reward, next_state, done)
-        #     state = next_state
-        #     score += reward
+            print('num good epxeriences so far',len(agent.memory.good_experiences))
+            print('num useful edits:',count_edits_were_useful)
             
 
-        # scores_window.append(score)       # save most recent score
-        # scores.append(score)              # save most recent score
-        # eps = max(eps_end, eps_decay*eps) # decrease epsilon
-        # print('\rEpisode {}\tAverage Score: {:.2f}\tSteps: {}'.format(epoch, np.mean(scores_window),t))
+            scores_window.append(score)       # save most recent score
+            scores.append(score)              # save most recent score
+            print('\rEpisode {}\tAverage Score: {:.2f}\tSteps: {}'.format(epoch, np.mean(scores_window),t))
 
 
 

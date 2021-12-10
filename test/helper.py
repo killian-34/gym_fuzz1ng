@@ -261,7 +261,7 @@ def random_edits(current_input, a):
 
 
 
-DEV_MODE = False
+DEV_MODE = True
 
 
 # must take bytearray
@@ -488,3 +488,31 @@ def deterministic_edits(orig, out_buff):
         print("Finished 4-byte interesting values: %s"%(snew-sprev))
         sprev = snew
 
+
+
+
+# must take bytearray
+# @jit
+# jit not working with byte arrays for some reason
+def deterministic_edits_2(orig, out_buff):
+    
+    # yield out_buff, 0
+
+    input_len = len(orig)
+    if DEV_MODE:
+        input_len = 5
+
+    s_determ = time.time()
+    sprev = s_determ
+    print("Starting deterministic edits!")
+    
+    # flip single bits
+    for bit_i in range(input_len << 3):
+        flip_bit_afl(out_buff, bit_i)
+        yield out_buff, bit_i
+        flip_bit_afl(out_buff, bit_i)
+    
+    snew = time.time()
+    print("Finished 1-bit flips: %s"%(snew-sprev))
+    sprev = snew
+    
