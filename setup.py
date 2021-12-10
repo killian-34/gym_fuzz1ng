@@ -31,6 +31,7 @@ setup(
             'libpng-1.6.34-mod/libpng_simple_fopen_afl',
             'simple_bits-mod/simple_bits_afl',
             'simple_loop-mod/simple_loop_afl',
+            'simple_2ladder_syscall-mod/simple_2ladder_syscall_afl'
         ],
     },
     packages=[

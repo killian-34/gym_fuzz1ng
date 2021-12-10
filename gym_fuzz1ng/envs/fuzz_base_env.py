@@ -85,6 +85,9 @@ class FuzzBaseEnv(gym.Env):
     def input_size(self):
         return self._input_size
 
+    def getpath(self):
+        return self._target_path
+
 
 
 # key difference is that we will pass around bytes data directly rather than working
@@ -169,3 +172,6 @@ class FuzzBaseEnvBytes(gym.Env):
 
     def input_size(self):
         return self._input_size
+
+    def getpath(self):
+        return self._target_path
