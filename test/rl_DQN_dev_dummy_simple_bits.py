@@ -1,10 +1,11 @@
 import gym
 import gym_fuzz1ng.coverage as coverage
-import numpy as np
-from collections import deque
 import helper
-from gym_fuzz1ng.envs.fuzz_simple_bits_env import FuzzSimpleBitsEnvSmall
+import numpy as np
 import time
+
+from collections import deque
+from gym_fuzz1ng.envs.fuzz_simple_bits_env import FuzzSimpleBitsEnvSmall
 from gym_fuzz1ng.utils import run_strace
 from fs.tempfs import TempFS
 
@@ -48,7 +49,9 @@ def get_observation_determ(a):
 sno=0
 tmp = TempFS(identifier='_fuzz', temp_dir='/tmp/') 
 tempdir = str(tmp._temp_dir) + "/"
-program_name = "SimpleBits-v0-"
+
+program_name = "FuzzSimple2LadderSyscall-v0"
+
 def get_observation_strace(path_to_binary, a):
     global sno
 
@@ -106,15 +109,15 @@ def main(n_episodes=2000, max_t=100, eps_start=1.0, eps_end=0.01, eps_decay=0.99
     # main fuzzing loop
     ####################
 
-    # env = gym.make('FuzzSimpleBits-v0')
-    env = FuzzSimpleBitsEnvSmall()
+    env = gym.make('FuzzSimple2LadderSyscall-v0')
+    # env = FuzzSimpleBitsEnvSmall()
     print("dict_size={} eof={}".format(env.dict_size(), env.eof()))
+    env.reset()
 
     agent = Agent(state_size=len(run_strace.syscall_map), action_size=32*8, device=device, lr=LR, 
             buffer_size=BUFFER_SIZE, batch_size=BATCH_SIZE, update_every=UPDATE_EVERY,
              gamma=GAMMA, tau=TAU, seed=0)
 
-    env.reset()
     total_coverage = coverage.Coverage()
 
     inputs = [
