@@ -1,41 +1,31 @@
-# RL-based fuzz1ng
+# Reinforcement Learning for Selecting Edit Actions During Fuzzing: An Investigation
 
-OpenAI Gym[0] environment for binary fuzzing of a variety of libraries (libpng
-for now), executables, as well as simpler examples.
+Jackson Killian and Susobhan Ghosh
 
-The environment's engine is based on american fuzzy lop[1] (afl) and capable of
-thousands of executions per seconds for moderaltely sized executables.
+OpenAI Gym[0] environment for Reinforcement Learning based binary fuzzing. 
+This repository contains a sample toy example to demonstrate the proof-of-concept
+for learning using RL. More examples can be added easily to the 
+`gym_fuzz1ng/mods/` folder, and editing the corresponding `Makefile`
+instruction. This is part of the class project on Systems Security (CS263)
+at Harvard University, taught by Prof. James Mickens.
 
-The action space is the following:
-```
-Box(low=0, high=DICT_SIZE-1, shape=(INPUT_SIZE,), dtype='int32')
-```
+The fuzzer implements a DQN to fuzz C programs.
+State: Underlying system call counts 
+Actions: Given an input of size `t` bytes, an action corresponds to choosing one 
+byte out of `t` bytes, and randomly flipping one bit in that chosen byte
+of the input. 
+Reward: Reward of 1 if new execution path is found, otherwise it is decaying, inversely
+proportional to the number of times the execution path has been seen before
+Transition: The toy example has been set such that each branch triggers a new syscall.
+This is a proof-of-concept example in order to overcome the limitation of not having
+exact basic block execution information; so this serves as a proxy for the same.
+So a new execution path will lead to change in sys call counts, essentially changing the 
+state.
 
-`DICT_SIZE` and `INPUT_SIZE` depend on the environnment and the underlying
-program to fuzz:
-- `DICT_SIZE` is the size of the dictionnary used to fuzz the program. `EOF` is
-  represented by `DICT_SIZE-1` and accessible by the `eof()` method on the
-  environment.
-- `INPUT_SIZE` is the input submitted for fuzzing it is fixed for each
-  environment and represents a maximal size for inputs to fuzz; smaller inputs
-  can be represented using `EOF`.
+The RL-fuzz environment's engine is based on american fuzzy lop[1] (afl) and is 
+capable of thousands of executions per seconds for moderaltely sized executables.
 
-The environment simulates the following game:
-
-- each action submits a full input for fuzzing and returns the number of unique
-  transitions executed as reward.
-- if no new coverage is discovered by an input, the game is ended.
-
-(It is possible to simply call `step` independently of whether the game is done
-or not if you're just interested in easily executing binaries and retrieving
-the associated coverage from Python. See also `step_raw`[2]).
-
-The observation space is the following:
-```
-Box(low=0, high=255, shape=(256, 256), dtype='int32')
-```
-
-To compute coverage, the underlying excecution engine assigns a random integer
+To compute code coverage, the underlying excecution engine assigns a random integer
 in `[0, 255]` to each simple block in the targeted binary.  The coverage is
 then represented by a `256x256` matrix of `int8` representing the number of
 time a transition was executed (note that this differs from how afl computes
@@ -45,7 +35,6 @@ last step execution is exactly what is returned as observation.
 
 - [0] https://gym.openai.com/
 - [1] http://lcamtuf.coredump.cx/afl/
-- [2] https://github.com/spolu/gym_fuzz1ng/blob/master/gym_fuzz1ng/envs/fuzz_base_env.py
 
 ## Installation
 
