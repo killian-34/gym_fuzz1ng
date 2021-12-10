@@ -109,8 +109,8 @@ def main(n_episodes=2000, max_t=100, eps_start=1.0, eps_end=0.01, eps_decay=0.99
     # main fuzzing loop
     ####################
 
-    # env = gym.make('FuzzSimple2LadderSyscall-v0')
-    env = FuzzSimpleBitsEnvSmall()
+    env = gym.make('FuzzSimple2LadderSyscall-v0')
+    # env = FuzzSimpleBitsEnvSmall()
     print("dict_size={} eof={}".format(env.dict_size(), env.eof()))
     env.reset()
 
@@ -211,7 +211,7 @@ def main(n_episodes=2000, max_t=100, eps_start=1.0, eps_end=0.01, eps_decay=0.99
             agent.memory.add(state, action, reward, next_state, done)
 
             if edit_was_useful:
-                agent.memory.get_good_experience(short=True)
+                agent.memory.get_good_experience(shorter_len=1)
                 print()
                 print('good experiences on action',action)
                 print(agent.memory.good_experiences)

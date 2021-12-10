@@ -107,9 +107,11 @@ class Agent():
                 self.learn_good_experiences()
 
     def learn_good_experiences(self):
-        ind = np.random.randint(0, len(self.memory.good_experiences))
-        exps = self.memory.good_experiences[ind]
-        self.learn(exps, self.gamma)
+        num_good_exps = len(self.memory.good_experiences)
+        if num_good_exps > 0:
+            ind = np.random.randint(0, num_good_exps)
+            exps = self.memory.good_experiences[ind]
+            self.learn(exps, self.gamma)
 
     def act(self, state, eps=0.):
         """Returns actions for given state as per current policy.
@@ -213,13 +215,13 @@ class ReplayBuffer:
   
         return (states, actions, rewards, next_states, dones)
 
-    def get_good_experience(self, short=False):
+    def get_good_experience(self, shorter_len=-1):
         dq_len = len(self.memory)
-        if dq_len > 1:
+        if dq_len > 0:
             
             lb = max(0,dq_len-self.batch_size)
-            if short:
-                lb = max(0, dq_len-2)
+            if shorter_len > 0:
+                lb = max(0, dq_len-shorter_len)
             print(dq_len, lb)
             good_experiences = list(itertools.islice(self.memory,lb,dq_len))
 
