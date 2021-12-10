@@ -4,7 +4,6 @@ from numba import jit
 import time
 
 ARITH_MAX = 4
-DEV_MODE = True
 
 INTERESTING_8 = [
   -128,          #/* Overflow signed 8-bit when decremented  */ \
@@ -262,7 +261,7 @@ def random_edits(current_input, a):
 
 
 
-
+DEV_MODE = False
 
 
 # must take bytearray

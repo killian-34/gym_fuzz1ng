@@ -19,11 +19,12 @@ from spinup.utils.mpi_pytorch import setup_pytorch_for_mpi, sync_params, mpi_avg
 from spinup.utils.mpi_tools import mpi_fork, mpi_avg, proc_id, mpi_statistics_scalar, num_procs
 
 import xxhash
-# import wandb
+
 from my_dqn import Agent
 
 
-# wandb.init(project="CS263", entity="cs263")
+import wandb
+wandb.init(project="CS263", entity="cs263")
 
 h = xxhash.xxh32()
 
@@ -136,6 +137,8 @@ def main(n_episodes=2000, max_t=1000, eps_start=1.0, eps_end=0.01, eps_decay=0.9
     scores_window = deque(maxlen=100)  # last 100 scores
     eps = eps_start                    # initialize epsilon
 
+    count_edits_were_useful = 0
+
     while len(input_queue) > 0:
         print('Queue length:', len(input_queue))
         next_input = input_queue.popleft()
@@ -144,9 +147,9 @@ def main(n_episodes=2000, max_t=1000, eps_start=1.0, eps_end=0.01, eps_decay=0.9
         out_buff = bytearray(next_input)
         s = time.time()
         for edit_input in helper.deterministic_edits(input_buff, out_buff):
-            newt = time.time()
-            print("loop time:",newt-s)
-            s=newt
+            # newt = time.time()
+            # print("loop time:",newt-s)
+            # s=newt
             # s = time.time()
             # obs = get_observation(path_to_binary, edit_input)
             # obs = get_observation(edit_input)
@@ -157,7 +160,7 @@ def main(n_episodes=2000, max_t=1000, eps_start=1.0, eps_end=0.01, eps_decay=0.9
             # TODO: find a way to increase the transition map size from 256 to other--
             # probably just increase MAPSIZE (sp?) param
 
-            print(edit_input[:5])#, int(edit_input[0]),int(edit_input[1]))
+            # print(edit_input[:5])#, int(edit_input[0]),int(edit_input[1]))
             obs, reward, done, info = env.step(edit_input)
             # print('before',total_coverage.transitions)
             total_coverage.add(info['step_coverage'])
@@ -168,6 +171,7 @@ def main(n_episodes=2000, max_t=1000, eps_start=1.0, eps_end=0.01, eps_decay=0.9
             edit_was_useful = global_coverage.union(info['step_coverage'])
             
             if edit_was_useful:
+                count_edits_were_useful+=1
                 input_queue.append(edit_input)
                 print("adding input",edit_input)
 
@@ -183,58 +187,100 @@ def main(n_episodes=2000, max_t=1000, eps_start=1.0, eps_end=0.01, eps_decay=0.9
             if done:
                 env.reset()
                 # print("DONE!")
+
+
+            global_transition_count = global_coverage.transition_count()
+            # print(global_transition_count)
+
+            # wandb.log({})
+            wandb.log({'global_coverage':global_transition_count, 'useful_edits':count_edits_were_useful})
         
         
         # for i_episode in range(1, n_episodes+1):
         # state = env.reset()
 
-        current_input = bytearray(next_input)
-        output_buff = bytearray(next_input)
+        # current_input = bytearray(next_input)
+        # output_buff = bytearray(next_input)
 
-        state = get_observation(path_to_binary, current_input)
-        score = 0
-        for t in range(max_t):
-            edit_action = agent.act(state, eps)
-            edit_input = helper.deterministic_bit_edit(current_input, edit_action)
+        # state = get_observation(path_to_binary, current_input)
+        # score = 0
+        
+        # for t in range(max_t):
+        #     edit_action = agent.act(state, eps)
+        #     edit_input = helper.deterministic_bit_edit(current_input, edit_action)
 
-            # run the file through afl, get the transition diagram from info
-            _, env_reward, done, info = env.step(edit_input)
+        #     # run the file through afl, get the transition diagram from info
+        #     _, env_reward, done, info = env.step(edit_input)
 
-            # get the syscall counts that we use for states
-            next_state = get_observation(path_to_binary, edit_input)
+        #     edit_was_useful = global_coverage.union(info['step_coverage'])
             
-            #copy the new edited file to the current input
-            current_input = edit_input
+        #     if edit_was_useful:
+        #         count_edits_were_useful+=1
+
+        #         input_queue.append(edit_input)
+        #         print("adding input",edit_input)
+
+
+        #         print(info['step_coverage'].transitions, edit_input[:4])
+        #         print(("STEP: reward={} done={} " +
+        #             "step={}/{}/{}").format(
+        #                 reward, done,
+        #                 info['step_coverage'].skip_path_count(),
+        #                 info['step_coverage'].transition_count(),
+        #                 info['step_coverage'].crash_count(),
+        #             ))
+        #     if done:
+        #         env.reset()
+
+        #     wandb.log({'useful_edits':count_edits_were_useful})
+
+        #     # get the syscall counts that we use for states
+        #     next_state = get_observation(path_to_binary, edit_input)
             
-            # dont use env_reward, since its just a sum of the transitions
-            # what we actually want is a count-based state exploration reward
-            # use the next_state for reward, could use state or even info['step_coverage'].transitions
-            h.update(next_state)
-            hsh = h.digest()
-            h.reset()
-            if hsh in state_count_dict:
-                state_count_dict[hsh] += 1
-            else:
-                state_count_dict[hsh] = 1
+        #     #copy the new edited file to the current input
+        #     current_input = edit_input
+            
+        #     # dont use env_reward, since its just a sum of the transitions
+        #     # what we actually want is a count-based state exploration reward
+        #     # use the next_state for reward, could use state or even info['step_coverage'].transitions
+        #     h.update(next_state)
+        #     hsh = h.digest()
+        #     h.reset()
+        #     if hsh in state_count_dict:
+        #         state_count_dict[hsh] += 1
+        #     else:
+        #         state_count_dict[hsh] = 1
 
-            reward = 1/np.sqrt(state_count_dict[hsh])
+        #     reward = 1/np.sqrt(state_count_dict[hsh])
 
-            print("obs")
-            print(obs)
-            print('hash', hsh)
-            print('count',state_count_dict[hsh])
-            print('reward',reward)
+        #     print("obs")
+        #     print(next_state)
+        #     print('hash', hsh)
+        #     print('count',state_count_dict[hsh])
+        #     print('reward',reward)
+        #     print('action',edit_action)
+        #     print('eps',eps)
+        #     print('current_input',current_input)
+        #     print('global map',global_coverage.transitions)
 
-            agent.step(state, edit_action, reward, next_state, done)
-            state = next_state
-            score += reward
+        #     wandb.log({'score':score, 'global_coverage':global_coverage.transition_count()})
+
+        #     agent.step(state, edit_action, reward, next_state, done)
+        #     state = next_state
+        #     score += reward
             
 
-        scores_window.append(score)       # save most recent score
-        scores.append(score)              # save most recent score
-        eps = max(eps_end, eps_decay*eps) # decrease epsilon
-        print('\rEpisode {}\tAverage Score: {:.2f}\tSteps: {}'.format(epoch, np.mean(scores_window),t))
+        # scores_window.append(score)       # save most recent score
+        # scores.append(score)              # save most recent score
+        # eps = max(eps_end, eps_decay*eps) # decrease epsilon
+        # print('\rEpisode {}\tAverage Score: {:.2f}\tSteps: {}'.format(epoch, np.mean(scores_window),t))
+
+
+
         epoch+=1
+
+
+
         # if i_episode % 100 == 0:
         #     print('\rEpisode {}\tAverage Score: {:.2f}'.format(i_episode, np.mean(scores_window)))
         # if np.mean(scores_window)>=200.0:
@@ -253,7 +299,6 @@ def main(n_episodes=2000, max_t=1000, eps_start=1.0, eps_end=0.01, eps_decay=0.9
         # Should look something like `for i in range(EPOCH_LENGTH): ... do RL exploration`
 
 
-        epoch += 1
 
         # TODO: also implement the AFL version of the random edits sequence, so we can roughly
         # compare against it. Shouldn't be too hard. Important thing will be to make sure 
