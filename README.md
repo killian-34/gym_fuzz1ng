@@ -10,13 +10,13 @@ instruction. This is part of the class project on Systems Security (CS263)
 at Harvard University, taught by Prof. James Mickens.
 
 The fuzzer implements a DQN to fuzz C programs.
-State: Underlying system call counts 
-Actions: Given an input of size `t` bytes, an action corresponds to choosing one 
+- State: Underlying system call counts 
+- Actions: Given an input of size `t` bytes, an action corresponds to choosing one 
 byte out of `t` bytes, and randomly flipping one bit in that chosen byte
 of the input. 
-Reward: Reward of 1 if new execution path is found, otherwise it is decaying, inversely
+- Reward: Reward of 1 if new execution path is found, otherwise it is decaying, inversely
 proportional to the number of times the execution path has been seen before
-Transition: The toy example has been set such that each branch triggers a new syscall.
+- Transition: The toy example has been set such that each branch triggers a new syscall.
 This is a proof-of-concept example in order to overcome the limitation of not having
 exact basic block execution information; so this serves as a proxy for the same.
 So a new execution path will lead to change in sys call counts, essentially changing the 
