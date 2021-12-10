@@ -53,7 +53,9 @@ python dummy_simple_bits.py
 ## Experiments
 
 In order to replicate the experiments run in the paper, just run the following:
+
 `./run_experiments.sh input_size n_trials`
+
 where `input_size` is the size of the input, and `n_trials` is the number of trials to average runs over.
 
 The plots are generated and stored in the `img` directory, while associated run data across
