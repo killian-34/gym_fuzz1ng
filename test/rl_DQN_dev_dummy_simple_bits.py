@@ -109,8 +109,8 @@ def main(n_episodes=2000, max_t=100, eps_start=1.0, eps_end=0.01, eps_decay=0.99
     # main fuzzing loop
     ####################
 
-    env = gym.make('FuzzSimple2LadderSyscall-v0')
-    # env = FuzzSimpleBitsEnvSmall()
+    # env = gym.make('FuzzSimple2LadderSyscall-v0')
+    env = FuzzSimpleBitsEnvSmall()
     print("dict_size={} eof={}".format(env.dict_size(), env.eof()))
     env.reset()
 
