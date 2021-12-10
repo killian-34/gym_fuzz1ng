@@ -1,7 +1,7 @@
 insize=$1;
 ntrials=$2;
 
-epochs_per_input=2;
+epochs_per_input=10;
 
 for i in $(seq 0 $ntrials); do
     python3 test/train_rlfuzz_2ladder.py $i $insize $epochs_per_input; 
