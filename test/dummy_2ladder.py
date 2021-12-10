@@ -153,6 +153,19 @@ def main(n_episodes=2000, max_t=100, eps_start=1.0, eps_end=0.01, eps_decay=0.99
         np.array([122, 0, 60, 0, 122], dtype=np.int8).tobytes(),
     ]
 
+    Ntot = 9
+    N = (Ntot -3)//2
+    inputs = [
+        np.array([0]+ [0]*N + [0] + [0]*N + [0], dtype=np.int8).tobytes(),
+        np.array([5]+ [0]*N + [0] + [0]*N + [5], dtype=np.int8).tobytes(),
+        np.array([50]+ [0]*N + [0] + [0]*N +[50], dtype=np.int8).tobytes(),
+        np.array([122]+ [0]*N + [0] + [0]*N + [122], dtype=np.int8).tobytes(),
+        np.array([0]+ [0]*N + [60] + [0]*N + [0], dtype=np.int8).tobytes(),
+        np.array([5]+ [0]*N + [60] + [0]*N + [5], dtype=np.int8).tobytes(),
+        np.array([50]+ [0]*N + [60] + [0]*N + [50], dtype=np.int8).tobytes(),
+        np.array([122]+ [0]*N + [60] + [0]*N + [122], dtype=np.int8).tobytes(),
+    ]
+
     di_list = []
 
     input_queue = deque(inputs)
@@ -178,7 +191,7 @@ def main(n_episodes=2000, max_t=100, eps_start=1.0, eps_end=0.01, eps_decay=0.99
         print('Queue length:', len(input_queue))
         next_input = input_queue.popleft()
     
-        print(next_input[:3])#, int(edit_input[0]),int(edit_input[1]))
+        print(next_input)#, int(edit_input[0]),int(edit_input[1]))
         _, env_reward, done, info = env.step(next_input)
 
         total_coverage.add(info['step_coverage'])

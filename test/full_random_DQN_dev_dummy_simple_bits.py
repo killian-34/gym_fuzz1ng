@@ -169,7 +169,7 @@ def main(n_episodes=2000, max_t=10, eps_start=1.0, eps_end=0.01, eps_decay=0.995
 
 
     GOOD_EXPERIENCE_LOOP_COUNTER = 10
-    EPOCHS_PER_INPUT = 10
+    EPOCHS_PER_INPUT = 2
 
     total_edits = 0
 
@@ -268,9 +268,11 @@ def main(n_episodes=2000, max_t=10, eps_start=1.0, eps_end=0.01, eps_decay=0.995
         for i in range(GOOD_EXPERIENCE_LOOP_COUNTER):
             agent.learn_good_experiences()
 
+        eps = 1.0
         for next_input in list(input_queue):
-            fname='2ladder_agent_trained.pickle'
-            agent.save_self(fname)
+            print('LOOP1')
+            # fname='2ladder_agent_trained.pickle'
+            # agent.save_self(fname)
             print('epoch',epoch_i)
             env.reset()
             current_input = bytearray(next_input)
@@ -279,6 +281,7 @@ def main(n_episodes=2000, max_t=10, eps_start=1.0, eps_end=0.01, eps_decay=0.995
             state = get_observation(path_to_binary, current_input)
             score = 0
             for t in range(max_t):
+                # print('LOOP')
                 edit_action = agent.act(state, eps)
                 edit_input = helper.network_edit(current_input, edit_action)
                 total_edits+=1
@@ -365,18 +368,18 @@ def main(n_episodes=2000, max_t=10, eps_start=1.0, eps_end=0.01, eps_decay=0.995
 
                 reward = 1/np.sqrt(state_count_dict[hsh])
 
-                if edit_was_useful:
-                    print("obs")
-                    print(next_state)
-                    print('hash', hsh)
-                    print('count',state_count_dict[hsh])
-                    print('reward',reward)
-                    print('action',edit_action)
-                    print('eps',eps)
-                    print('current_input',current_input)
-                    print('current_input',np.frombuffer(current_input,dtype=np.uint8))
-                    print('global map',global_coverage.transitions)
-                eps = max(eps_end, eps_decay*eps) # decrease epsilon
+                # if edit_was_useful:
+                #     print("obs")
+                #     print(next_state)
+                #     print('hash', hsh)
+                #     print('count',state_count_dict[hsh])
+                #     print('reward',reward)
+                #     print('action',edit_action)
+                #     print('eps',eps)
+                #     print('current_input',current_input)
+                #     print('current_input',np.frombuffer(current_input,dtype=np.uint8))
+                #     print('global map',global_coverage.transitions)
+                # eps = max(eps_end, eps_decay*eps) # decrease epsilon
 
                 unique_transitions_found.append(count_edits_were_useful)
 
@@ -391,22 +394,22 @@ def main(n_episodes=2000, max_t=10, eps_start=1.0, eps_end=0.01, eps_decay=0.995
                 if edit_was_useful:
                     agent.memory.get_good_experience(shorter_len=1)
 
-            print("obs")
-            print(next_state)
-            print('hash', hsh)
-            print('count',state_count_dict[hsh])
-            print('reward',reward)
-            print('action',edit_action)
-            print('eps',eps)
-            print('current_input',current_input)
-            print('current_input',np.frombuffer(current_input,dtype=np.uint8))
-            print('global map',global_coverage.transitions)
+            # print("obs")
+            # print(next_state)
+            # print('hash', hsh)
+            # print('count',state_count_dict[hsh])
+            # print('reward',reward)
+            # print('action',edit_action)
+            # print('eps',eps)
+            # print('current_input',current_input)
+            # print('current_input',np.frombuffer(current_input,dtype=np.uint8))
+            # print('global map',global_coverage.transitions)
             
 
-            for i in range(GOOD_EXPERIENCE_LOOP_COUNTER):
-                agent.learn_good_experiences()
-            for exp in agent.memory.good_experiences:
-                print(exp)
+            # for i in range(GOOD_EXPERIENCE_LOOP_COUNTER):
+            #     agent.learn_good_experiences()
+            # for exp in agent.memory.good_experiences:
+            #     print(exp)
 
 
             
@@ -424,9 +427,9 @@ def main(n_episodes=2000, max_t=10, eps_start=1.0, eps_end=0.01, eps_decay=0.995
     
         epoch+=1
 
-    print("realllllly learn those experiences")
-    for i in range(GOOD_EXPERIENCE_LOOP_COUNTER*10):
-        agent.learn_good_experiences()
+    # print("realllllly learn those experiences")
+    # for i in range(GOOD_EXPERIENCE_LOOP_COUNTER*10):
+    #     agent.learn_good_experiences()
     # import pdb;pdb.set_trace()
 
     # import pickle
@@ -450,11 +453,14 @@ def main(n_episodes=2000, max_t=10, eps_start=1.0, eps_end=0.01, eps_decay=0.995
 
     
     import pandas as pd 
-    pd.DataFrame(times,columns=['tt4','tt5','tt6','tt7','tt8s']).to_csv('train_times_%s.csv'%trial,index=False)
+    pd.DataFrame(times,columns=['tt4','tt5','tt6','tt7','tt8s']).to_csv('random_times_%s.csv'%trial,index=False)
 
-    pd.DataFrame(edits_until_x,columns=['et4','et5','et6','et7','et8s']).to_csv('train_edits_until_x_%s.csv'%trial,index=False)
+    pd.DataFrame(edits_until_x,columns=['et4','et5','et6','et7','et8s']).to_csv('random_edits_until_x_%s.csv'%trial,index=False)
 
-    pd.DataFrame([unique_transitions_found]).to_csv('train_transitions_per_edit_%s.csv'%trial,index=False)
+    pd.DataFrame([unique_transitions_found]).to_csv('random_transitions_per_edit_%s.csv'%trial,index=False)
+
+    print("Total edits!")
+    print(total_edits)
 
 
         # if i_episode % 100 == 0:

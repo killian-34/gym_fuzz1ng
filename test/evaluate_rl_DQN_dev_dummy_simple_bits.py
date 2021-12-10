@@ -3,7 +3,7 @@ import gym_fuzz1ng.coverage as coverage
 import helper
 import numpy as np
 import time
-
+import sys
 from collections import deque
 from gym_fuzz1ng.envs.fuzz_simple_bits_env import FuzzSimpleBitsEnvSmall
 from gym_fuzz1ng.utils import run_strace
@@ -23,7 +23,6 @@ import xxhash
 
 from my_dqn import Agent
 
-import sys
 
 # import wandb
 # wandb.init(project="CS263", entity="cs263")
@@ -134,6 +133,10 @@ def main(n_episodes=2000, max_t=10, eps_start=1.0, eps_end=0.01, eps_decay=0.995
             buffer_size=BUFFER_SIZE, batch_size=BATCH_SIZE, update_every=UPDATE_EVERY,
              gamma=GAMMA, tau=TAU, seed=seed)
 
+    fname='2ladder_agent_trained_%s.pickle'%trial
+    agent.load_self(fname)
+
+
     total_coverage = coverage.Coverage()
 
     inputs = [
@@ -168,109 +171,26 @@ def main(n_episodes=2000, max_t=10, eps_start=1.0, eps_end=0.01, eps_decay=0.995
     time_to_eight = 0
 
 
-    GOOD_EXPERIENCE_LOOP_COUNTER = 10
+    starttime = time.time()
+    # while len(input_queue) > 0:
     EPOCHS_PER_INPUT = 10
-
     total_edits = 0
 
     edits_until_x = np.zeros(5)
     unique_transitions_found = []
-
-    starttime = time.time()
-    # while len(input_queue) > 0:
     for epoch_i in range(EPOCHS_PER_INPUT):
-        print('Queue length:', len(input_queue))
+        # print('Queue length:', len(input_queue))
         # next_input = input_queue.popleft()
 
         # input_buff = bytearray(next_input)
         # out_buff = bytearray(next_input)
         # s = time.time()
 
-        PRETRAIN_WITH_DETERM = False
+        eps=0.1
 
 
-        if PRETRAIN_WITH_DETERM:
-            state = get_observation(path_to_binary, input_buff)
-            for edit_input, action in helper.deterministic_edits_2(input_buff, out_buff):
-                # newt = time.time()
-                # print("loop time:",newt-s)
-                # s=newt
-                # s = time.time()
-                # obs = get_observation(path_to_binary, edit_input)
-                # obs = get_observation(edit_input)
-                # s1 = time.time()
-                # print("time",s1-s)
-                # print('state',obs)
-
-                # oldTODO: find a way to increase the transition map size from 256 to other--
-                # probably just increase MAPSIZE (sp?) param
-
-
-                next_state = get_observation(path_to_binary, edit_input)
-                
-                print(edit_input[:5])#, int(edit_input[0]),int(edit_input[1]))
-                _, env_reward, done, info = env.step(edit_input)
-                reward = 0
-
-                # don't actually want this for deterministic edits... these are all one step transitions
-                # state = next_state
-
-                # print('before',total_coverage.transitions)
-                total_coverage.add(info['step_coverage'])
-                # print('after',total_coverage.transitions)
-                # print()
-                
-                # oldTODO: double check this is the way global coverage is tracked in AFL
-                edit_was_useful = global_coverage.union(info['step_coverage'])
-                
-                if edit_was_useful:
-                    
-                    # always give reward 1 for useful edits during deterministic phase
-                    reward = 1
-
-                    count_edits_were_useful+=1
-                    input_queue.append(edit_input)
-                    print("adding input",edit_input)
-
-
-                    print(info['step_coverage'].transitions, edit_input[:4])
-                    print(("STEP: reward={} done={} " +
-                        "step={}/{}/{}").format(
-                            reward, done,
-                            info['step_coverage'].skip_path_count(),
-                            info['step_coverage'].transition_count(),
-                            info['step_coverage'].crash_count(),
-                        ))
-                if done:
-                    env.reset()
-                    # print("DONE!")
-
-
-                # get experiences for deterministic edits as well
-                done=False
-                agent.memory.add(state, action, reward, next_state, done)
-
-                if edit_was_useful:
-                    agent.memory.get_good_experience(shorter_len=1)
-                    print()
-                    print('good experiences on action',action)
-                    print(agent.memory.good_experiences)
-                    # 1/0
-
-
-                global_transition_count = global_coverage.transition_count()
-                # print(global_transition_count)
-
-                # wandb.log({})
-                # wandb.log({'global_coverage':global_transition_count, 'useful_edits':count_edits_were_useful})
-        
-        
-        for i in range(GOOD_EXPERIENCE_LOOP_COUNTER):
-            agent.learn_good_experiences()
-
+        # EPOCHS_PER_INPUT = 10
         for next_input in list(input_queue):
-            fname='2ladder_agent_trained.pickle'
-            agent.save_self(fname)
             print('epoch',epoch_i)
             env.reset()
             current_input = bytearray(next_input)
@@ -376,20 +296,18 @@ def main(n_episodes=2000, max_t=10, eps_start=1.0, eps_end=0.01, eps_decay=0.995
                     print('current_input',current_input)
                     print('current_input',np.frombuffer(current_input,dtype=np.uint8))
                     print('global map',global_coverage.transitions)
-                eps = max(eps_end, eps_decay*eps) # decrease epsilon
+                # eps = max(eps_end, eps_decay*eps) # decrease epsilon
 
                 unique_transitions_found.append(count_edits_were_useful)
 
                 # wandb.log({'score':score, 'global_coverage':global_coverage.transition_count()})
                 done = False
-                agent.step(state, edit_action, reward, next_state, done)
+                # agent.step(state, edit_action, reward, next_state, done)
                 state = next_state
                 score += reward
 
-                
-
                 if edit_was_useful:
-                    agent.memory.get_good_experience(shorter_len=1)
+                    agent.memory.get_good_experience()
 
             print("obs")
             print(next_state)
@@ -403,11 +321,8 @@ def main(n_episodes=2000, max_t=10, eps_start=1.0, eps_end=0.01, eps_decay=0.995
             print('global map',global_coverage.transitions)
             
 
-            for i in range(GOOD_EXPERIENCE_LOOP_COUNTER):
-                agent.learn_good_experiences()
-            for exp in agent.memory.good_experiences:
-                print(exp)
-
+            # for i in range(GOOD_EXPERIENCE_LOOP_COUNTER):
+            #     agent.learn_good_experiences()
 
             
 
@@ -421,20 +336,10 @@ def main(n_episodes=2000, max_t=10, eps_start=1.0, eps_end=0.01, eps_decay=0.995
             print('\rEpisode {}\tAverage Score: {:.2f}\tSteps: {}'.format(epoch_i, np.mean(scores_window),t))
 
 
-    
+
         epoch+=1
 
-    print("realllllly learn those experiences")
-    for i in range(GOOD_EXPERIENCE_LOOP_COUNTER*10):
-        agent.learn_good_experiences()
     # import pdb;pdb.set_trace()
-
-    # import pickle
-    # with open('2ladder_agent_trained.pickle', 'wb') as handle:
-    #     pickle.dump(agent, handle, protocol=pickle.HIGHEST_PROTOCOL)
-
-    fname='2ladder_agent_trained_%s.pickle'%trial
-    agent.save_self(fname)
     print('time to four',time_to_four)
     print('time to five',time_to_five)
     print('time to six',time_to_six)
@@ -443,6 +348,7 @@ def main(n_episodes=2000, max_t=10, eps_start=1.0, eps_end=0.01, eps_decay=0.995
 
 
     times = [[time_to_four, time_to_five, time_to_six, time_to_seven, time_to_eight]]
+
     edits_until_x = [edits_until_x]
 
     print(len(unique_transitions_found))
@@ -450,11 +356,12 @@ def main(n_episodes=2000, max_t=10, eps_start=1.0, eps_end=0.01, eps_decay=0.995
 
     
     import pandas as pd 
-    pd.DataFrame(times,columns=['tt4','tt5','tt6','tt7','tt8s']).to_csv('train_times_%s.csv'%trial,index=False)
+    pd.DataFrame(times,columns=['tt4','tt5','tt6','tt7','tt8s']).to_csv('test_times_%s.csv'%trial,index=False)
 
-    pd.DataFrame(edits_until_x,columns=['et4','et5','et6','et7','et8s']).to_csv('train_edits_until_x_%s.csv'%trial,index=False)
+    pd.DataFrame(edits_until_x,columns=['et4','et5','et6','et7','et8s']).to_csv('test_edits_until_x_%s.csv'%trial,index=False)
 
-    pd.DataFrame([unique_transitions_found]).to_csv('train_transitions_per_edit_%s.csv'%trial,index=False)
+    pd.DataFrame([unique_transitions_found]).to_csv('test_transitions_per_edit_%s.csv'%trial,index=False)
+
 
 
         # if i_episode % 100 == 0:

@@ -49,10 +49,6 @@ def flip_bit_afl(a, bit_i):
 def flip_byte_afl(a, byte_i):
     a[byte_i] ^= 0xFF
 
-def deterministic_bit_edit(in_buff, bit_i):
-    flip_bit_afl(in_buff, bit_i)
-    return in_buff
-
 
 def random_edits(current_input, a):
 
@@ -509,10 +505,25 @@ def deterministic_edits_2(orig, out_buff):
     # flip single bits
     for bit_i in range(input_len << 3):
         flip_bit_afl(out_buff, bit_i)
-        yield out_buff, bit_i
+        yield out_buff, bit_i//8
         flip_bit_afl(out_buff, bit_i)
     
     snew = time.time()
     print("Finished 1-bit flips: %s"%(snew-sprev))
     sprev = snew
     
+
+def network_edit(in_buff, a):
+    return random_bit_edit_in_byte(in_buff, a)
+
+
+def deterministic_bit_edit(in_buff, bit_i):
+    flip_bit_afl(in_buff, bit_i)
+    return in_buff
+
+
+def random_bit_edit_in_byte(in_buff, byte_i):
+    ind = np.random.randint(0,8)
+    bit_i = byte_i*8 + ind
+    flip_bit_afl(in_buff, bit_i)
+    return in_buff

@@ -92,6 +92,14 @@ class Agent():
         self.memory = ReplayBuffer(action_size, buffer_size, batch_size, device, seed)
         # Initialize time step (for updating every UPDATE_EVERY steps)
         self.t_step = 0
+
+    def save_self(self, name):
+        torch.save([self.qnetwork_local.state_dict(), self.qnetwork_target.state_dict()], name)
+
+    def load_self(self, name):
+        l = torch.load(name)
+        self.qnetwork_local.load_state_dict(l[0])
+        self.qnetwork_target.load_state_dict(l[1])
     
     def step(self, state, action, reward, next_state, done):
         # Save experience in replay memory
@@ -110,6 +118,7 @@ class Agent():
         num_good_exps = len(self.memory.good_experiences)
         if num_good_exps > 0:
             ind = np.random.randint(0, num_good_exps)
+            # print("learning from experience %i"%ind)
             exps = self.memory.good_experiences[ind]
             self.learn(exps, self.gamma)
 

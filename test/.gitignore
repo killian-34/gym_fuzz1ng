@@ -1,0 +1,4 @@
+*.pickle
+*.csv
+img/
+wandb/
