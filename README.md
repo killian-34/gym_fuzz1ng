@@ -3,20 +3,20 @@
 Jackson Killian and Susobhan Ghosh
 
 OpenAI Gym[0] environment for Reinforcement Learning based binary fuzzing. 
-This repository contains a sample toy example to demonstrate the proof-of-concept
-for learning using RL. More examples can be added easily to the 
+This repository contains an engineered example prgoram to demonstrate the proof-of-concept
+for learning to take fuzz edit actions using RL. More programs can be added easily to the 
 `gym_fuzz1ng/mods/` folder, and editing the corresponding `Makefile`
 instruction. This is part of the class project on Systems Security (CS263)
 at Harvard University, taught by Prof. James Mickens.
 
-The fuzzer implements a DQN to fuzz C programs.
-- State: Underlying system call counts 
+The fuzzer implements a Deep Q-Network to fuzz C programs.
+- State: Underlying system call counts measured using strace
 - Actions: Given an input of size `t` bytes, an action corresponds to choosing one 
 byte out of `t` bytes, and randomly flipping one bit in that chosen byte
 of the input. 
 - Reward: Reward of 1 if new execution path is found, otherwise it is decaying, inversely
 proportional to the number of times the execution path has been seen before
-- Transition: The toy example has been set such that each branch triggers a new syscall.
+- Transition: The engineered example has been set such that each branch triggers a new syscall.
 This is a proof-of-concept example in order to overcome the limitation of not having
 exact basic block execution information; so this serves as a proxy for the same.
 So a new execution path will lead to change in sys call counts, essentially changing the 
@@ -45,6 +45,8 @@ pip install .
 
 # You may need to run the following commands as well as superuser.
 echo core >/proc/sys/kernel/core_pattern
+OR 
+sudo sysctl -w kernel.core_pattern=core
 
 # You can then test that everything works by running our dummy example.
 python dummy_simple_bits.py
@@ -56,7 +58,7 @@ In order to replicate the experiments run in the paper, just run the following:
 
 `./run_experiments.sh input_size n_trials`
 
-where `input_size` is the size of the input, and `n_trials` is the number of trials to average runs over.
+where `input_size` is the size of the input (11, 21 and 31 in the paper), and `n_trials` is the number of trials to average runs over (10 in the paper).
 
 The plots are generated and stored in the `img` directory, while associated run data across
 trials is logged in csvs stored in `csv` directory. The trained models are stored in the 
