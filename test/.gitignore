@@ -2,3 +2,6 @@
 *.csv
 img/
 wandb/
+img_old/
+pickles/
+pickles.zip

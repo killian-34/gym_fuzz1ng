@@ -70,7 +70,7 @@ ax.legend()
 # ax.bar_label(rects2, padding=3)
 
 fig.tight_layout()
-plt.savefig('img/2ladder_train_test_times_%s.png'%INPUT_SIZE)
+plt.savefig('img/2ladder_train_test_times_%s.png'%INPUT_SIZE, dpi=250)
 # plt.show()
 plt.clf()
 
@@ -173,7 +173,7 @@ ax.legend()
 # ax.bar_label(rects2, padding=3)
 
 fig.tight_layout()
-plt.savefig('img/2ladder_train_test_random_edits_until_%s.png'%INPUT_SIZE)
+plt.savefig('img/2ladder_train_test_random_edits_until_%s.png'%INPUT_SIZE, dpi=250)
 plt.clf()
 
 
@@ -273,4 +273,4 @@ plt.legend()
 # ax.bar_label(rects2, padding=3)
 
 fig.tight_layout()
-plt.savefig('img/2ladder_train_test_random_edits_over_time_%s.png'%INPUT_SIZE)
+plt.savefig('img/2ladder_train_test_random_edits_over_time_%s.png'%INPUT_SIZE, dpi=250)
